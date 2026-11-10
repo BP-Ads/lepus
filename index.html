@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Família Coelho" />
+  <title>Família Coelho</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/png" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f6fa;
+      --card: #ffffff;
+      --text: #1a1a2e;
+      --text2: #6b7280;
+      --border: #e5e7eb;
+      --green: #10b981;
+      --green-bg: #ecfdf5;
+      --red: #ef4444;
+      --red-bg: #fef2f2;
+      --orange: #f59e0b;
+      --orange-bg: #fffbeb;
+      --blue: #3b82f6;
+      --blue-bg: #eff6ff;
+      --shadow: 0 2px 12px rgba(0,0,0,0.07);
+      --radius: 14px;
+      --nav-h: 68px;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: calc(var(--nav-h) + 16px);
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      background: var(--card);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-title { font-size: 18px; font-weight: 700; }
+    .header-title span { color: var(--blue); }
+    .month-nav { display: flex; align-items: center; gap: 12px; }
+    .month-nav button {
+      background: none; border: none; cursor: pointer;
+      font-size: 20px; color: var(--text2); padding: 4px 8px;
+      border-radius: 8px; transition: background .2s;
+    }
+    .month-nav button:hover { background: var(--border); }
+    .month-label { font-size: 15px; font-weight: 600; min-width: 110px; text-align: center; }
+
+    /* ===== MAIN ===== */
+    .main { padding: 20px 16px; max-width: 600px; margin: 0 auto; }
+
+    /* ===== CARDS RESUMO ===== */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .summary-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    .summary-card.full { grid-column: 1 / -1; }
+    .summary-card .label {
+      font-size: 12px; font-weight: 500;
+      color: var(--text2); text-transform: uppercase;
+      letter-spacing: .5px; margin-bottom: 6px;
+    }
+    .summary-card .value {
+      font-size: 22px; font-weight: 700;
+    }
+    .summary-card .value.green { color: var(--green); }
+    .summary-card .value.red { color: var(--red); }
+    .summary-card .value.blue { color: var(--blue); }
+    .summary-card .value.orange { color: var(--orange); }
+    .summary-card .sub {
+      font-size: 12px; color: var(--text2); margin-top: 4px;
+    }
+
+    /* ===== BARRA DE PROGRESSO ===== */
+    .progress-bar {
+      background: var(--border); border-radius: 99px;
+      height: 8px; margin-top: 10px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; border-radius: 99px;
+      background: linear-gradient(90deg, var(--green), var(--blue));
+      transition: width .5s ease;
+    }
+
+    /* ===== SECTION ===== */
+    .section { margin-bottom: 20px; }
+    .section-header {
+      display: flex; align-items: center;
+      justify-content: space-between; margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: 15px; font-weight: 700;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .badge {
+      background: var(--red); color: #fff;
+      font-size: 11px; font-weight: 600;
+      padding: 2px 7px; border-radius: 99px;
+    }
+    .badge.orange { background: var(--orange); }
+    .btn-add {
+      background: var(--blue); color: #fff;
+      border: none; border-radius: 99px;
+      padding: 6px 14px; font-size: 13px;
+      font-weight: 600; cursor: pointer;
+      font-family: 'Poppins', sans-serif;
+      transition: opacity .2s;
+    }
+    .btn-add:hover { opacity: .85; }
+
+    /* ===== ITEM CARD ===== */
+    .item-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: transform .15s;
+    }
+    .item-card:active { transform: scale(.98); }
+
+    .item-check {
+      width: 24px; height: 24px; flex-shrink: 0;
+      border: 2px solid var(--border);
+      border-radius: 50%; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .2s;
+    }
+    .item-check.checked {
+      background: var(--green); border-color: var(--green);
+    }
+    .item-check.checked::after {
+      content: '✓'; color: #fff; font-size: 13px; font-weight: 700;
+    }
+
+    .item-info { flex: 1; min-width: 0; }
+    .item-name {
+      font-size: 14px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .item-name.paid { text-decoration: line-through; color: var(--text2); }
+    .item-meta {
+      font-size: 12px; color: var(--text2); margin-top: 2px;
+    }
+    .item-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+    .tag {
+      font-size: 11px; font-weight: 500;
+      padding: 2px 8px; border-radius: 99px;
+    }
+    .tag.fixo { background: var(--blue-bg); color: var(--blue); }
+    .tag.parcelado { background: var(--orange-bg); color: var(--orange); }
+    .tag.esporadico { background: #f3f4f6; color: var(--text2); }
+    .tag.atrasado { background: var(--red-bg); color: var(--red); }
+
+    .item-value {
+      font-size: 15px; font-weight: 700;
+      flex-shrink: 0; text-align: right;
+    }
+    .item-value.paid { color: var(--text2); font-weight: 500; }
+
+    .item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .btn-icon {
+      background: none; border: none; cursor: pointer;
+      font-size: 16px; padding: 4px; border-radius: 8px;
+      transition: background .2s;
+    }
+    .btn-icon:hover { background: var(--border); }
+
+    /* ===== EMPTY STATE ===== */
+    .empty {
+      text-align: center; padding: 40px 20px;
+      color: var(--text2); font-size: 14px;
+    }
+    .empty .icon { font-size: 40px; margin-bottom: 10px; }
+
+    /* ===== BOTTOM NAV ===== */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      display: flex; height: var(--nav-h);
+      z-index: 200;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+    }
+    .nav-item {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 4px; cursor: pointer; border: none;
+      background: none; font-family: 'Poppins', sans-serif;
+      font-size: 11px; font-weight: 500; color: var(--text2);
+      transition: color .2s; padding: 8px 0;
+    }
+    .nav-item .icon { font-size: 22px; }
+    .nav-item.active { color: var(--blue); }
+
+    /* ===== MODAL ===== */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 300; display: none;
+      align-items: flex-end; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--card);
+      border-radius: 24px 24px 0 0;
+      padding: 24px 20px 40px;
+      width: 100%; max-width: 600px;
+      max-height: 90vh; overflow-y: auto;
+      animation: slideUp .3s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .modal-title {
+      font-size: 18px; font-weight: 700;
+      margin-bottom: 20px; text-align: center;
+    }
+
+    /* ===== FORM ===== */
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+      display: block; font-size: 13px; font-weight: 600;
+      margin-bottom: 6px; color: var(--text2);
+    }
+    .form-input, .form-select {
+      width: 100%; padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px; font-size: 15px;
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg); color: var(--text);
+      transition: border-color .2s;
+      appearance: none;
+    }
+    .form-input:focus, .form-select:focus {
+      outline: none; border-color: var(--blue);
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .tipo-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tipo-btn {
+      flex: 1; min-width: 80px; padding: 10px 8px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      background: none; cursor: pointer; font-family: 'Poppins', sans-serif;
+      font-size: 12px; font-weight: 500; text-align: center;
+      transition: all .2s;
+    }
+    .tipo-btn.active {
+      border-color: var(--blue); background: var(--blue-bg); color: var(--blue);
+    }
+    .conditional { display: none; }
+    .conditional.show { display: block; }
+
+    .btn-salvar {
+      width: 100%; padding: 14px;
+      background: var(--blue); color: #fff;
+      border: none; border-radius: 12px;
+      font-size: 16px; font-weight: 700;
+      font-family: 'Poppins', sans-serif;
+      cursor: pointer; margin-top: 8px;
+      transition: opacity .2s;
+    }
+    .btn-salvar:hover { opacity: .9; }
+    .btn-cancelar {
+      width: 100%; padding: 12px;
+      background: none; color: var(--text2);
+      border: none; font-size: 14px;
+      font-family: 'Poppins', sans-serif;
+      cursor: pointer; margin-top: 6px;
+    }
+
+    /* ===== TABS ===== */
+    .tabs {
+      display: flex; gap: 8px; margin-bottom: 16px;
+      overflow-x: auto; padding-bottom: 4px;
+    }
+    .tab {
+      padding: 8px 16px; border-radius: 99px;
+      border: 1.5px solid var(--border);
+      background: none; cursor: pointer;
+      font-family: 'Poppins', sans-serif;
+      font-size: 13px; font-weight: 500;
+      white-space: nowrap; transition: all .2s;
+    }
+    .tab.active {
+      background: var(--blue); border-color: var(--blue); color: #fff;
+    }
+
+    /* ===== ALERTA ATRASADO ===== */
+    .alert-banner {
+      background: var(--red-bg);
+      border: 1px solid #fca5a5;
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      font-size: 13px; color: var(--red);
+      font-weight: 500;
+    }
+
+    /* ===== PAGES ===== */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ===== LOADING ===== */
+    .loading {
+      text-align: center; padding: 40px;
+      color: var(--text2); font-size: 14px;
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== ENTRADA CARD ===== */
+    .entrada-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .entrada-icon {
+      width: 40px; height: 40px;
+      border-radius: 50%; background: var(--green-bg);
+      display: flex; align-items: center;
+      justify-content: center; font-size: 18px;
+      flex-shrink: 0;
+    }
+    .entrada-icon.saida { background: var(--red-bg); }
+
+    /* Scrollbar hide */
+    .tabs::-webkit-scrollbar { display: none; }
+    /* ===== BOTÃO FLUTUANTE ===== */
+    .fab {
+      position: fixed;
+      bottom: calc(var(--nav-h) + 16px);
+      right: 20px;
+      width: 56px; height: 56px;
+      background: var(--blue);
+      color: #fff;
+      border: none; border-radius: 50%;
+      font-size: 28px; font-weight: 300;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(59,130,246,0.45);
+      display: none;
+      align-items: center; justify-content: center;
+      z-index: 150;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .fab:active { transform: scale(.93); box-shadow: 0 2px 8px rgba(59,130,246,0.3); }
+    .fab.visible { display: flex; }
+
+    /* ===== AJUSTES DA VERSÃO SUPABASE ===== */
+    button { font-family: inherit; color: inherit; }
+    button.item-check { background: transparent; padding: 0; }
+    button.item-check.checked { background: var(--green); border-color: var(--green); }
+    .item-value.green { color: var(--green); }
+    .item-value.red { color: var(--red); }
+    .item-value.orange { color: var(--orange); }
+    .green { color: var(--green); } .red { color: var(--red); } .blue { color: var(--blue); }
+    .tipo-btn:disabled { opacity: .55; cursor: not-allowed; }
+    .tipo-btn.active.entrada { border-color: var(--green); background: var(--green-bg); color: var(--green); }
+    .tipo-btn.active.saida { border-color: var(--red); background: var(--red-bg); color: var(--red); }
+    .btn-google { background: #fff; color: var(--text); border: 1.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .btn-salvar:disabled { opacity: .6; cursor: wait; }
+    .btn-icon { min-width: 36px; min-height: 36px; }
+    .nav-item:focus-visible, .btn-icon:focus-visible, .tab:focus-visible, .item-check:focus-visible,
+    .btn-add:focus-visible, .cat-row:focus-visible, .form-input:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+    .check-row { display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 14px; cursor: pointer; }
+    .check-row input { width: 18px; height: 18px; }
+    .header { padding-top: calc(16px + env(safe-area-inset-top)); }
+    .bottom-nav { padding-bottom: env(safe-area-inset-bottom); height: calc(var(--nav-h) + env(safe-area-inset-bottom)); }
+
+    .cat-row { display: block; width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+      padding: 0; margin-bottom: 14px; }
+    .cat-top { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 5px; font-size: 13px; font-weight: 500; }
+    .linha-pessoa { display: grid; grid-template-columns: 1fr auto auto auto; gap: 10px; align-items: baseline;
+      font-size: 13px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .linha-pessoa:last-child { border-bottom: none; }
+
+    .hist { display: flex; gap: 8px; align-items: flex-end; height: 130px; }
+    .hist-col { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; }
+    .hist-bars { flex: 1; width: 100%; display: flex; gap: 3px; align-items: flex-end; justify-content: center; }
+    .hist-bar { width: 38%; min-height: 2px; border-radius: 4px 4px 0 0; }
+    .hist-bar.e { background: var(--green); } .hist-bar.s { background: var(--red); }
+    .hist-lbl { font-size: 11px; color: var(--text2); margin-top: 6px; }
+
+    .toast { position: fixed; left: 50%; bottom: calc(var(--nav-h) + 90px); transform: translate(-50%, 20px);
+      background: #1f2937; color: #fff; padding: 10px 16px; border-radius: 99px; font-size: 13px;
+      max-width: 90vw; text-align: center; opacity: 0; pointer-events: none; transition: all .25s; z-index: 400; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .toast.erro { background: var(--red); }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+    .header-title { font-size: 16px; white-space: nowrap; }
+    .month-nav { gap: 4px; }
+    .month-label { min-width: 0; white-space: nowrap; font-size: 14px; padding: 0 2px; }
+
+  </style>
+</head>
+<body>
+
+<!-- TELA DE LOGIN -->
+<div class="modal-overlay open" id="tela-login" style="align-items:center;background:var(--bg)">
+  <div class="modal" style="border-radius:24px;max-width:340px">
+    <div class="modal-title">🐇 Família Coelho</div>
+    <div class="form-group">
+      <label class="form-label" for="login-email">E-mail</label>
+      <input class="form-input" id="login-email" type="email" autocomplete="username" placeholder="seuemail@exemplo.com" />
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="login-senha">Senha</label>
+      <input class="form-input" id="login-senha" type="password" autocomplete="current-password" placeholder="••••••••" />
+    </div>
+    <div id="login-erro" role="alert" style="color:var(--red);font-size:13px;margin-bottom:10px;display:none"></div>
+    <button class="btn-salvar" id="login-btn" data-act="login">Entrar</button>
+
+    <div style="text-align:center;color:var(--text2);font-size:12px;margin:14px 0">ou</div>
+
+    <button class="btn-salvar btn-google" data-act="login-google">
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.98v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.98A9 9 0 0 0 0 9c0 1.45.35 2.83.98 4.03l2.97-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .98 4.97l2.97 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
+      Entrar com Google
+    </button>
+  </div>
+</div>
+
+<!-- APP (escondido até logar) -->
+<div id="app-root" style="display:none">
+
+  <div class="header">
+    <div class="header-title">Família <span>Coelho</span></div>
+    <div class="month-nav">
+      <button data-act="mes" data-dir="-1" aria-label="Mês anterior">‹</button>
+      <div class="month-label" id="monthLabel" aria-live="polite"></div>
+      <button data-act="mes" data-dir="1" aria-label="Próximo mês">›</button>
+      <button data-act="logout" title="Sair" aria-label="Sair" style="font-size:16px">🚪</button>
+    </div>
+  </div>
+
+  <main class="main">
+    <div class="page active" id="page-home">
+      <div id="home-content"><div class="loading"><div class="spinner"></div>Carregando...</div></div>
+    </div>
+
+    <div class="page" id="page-contas">
+      <div class="section-header">
+        <div class="section-title">Contas a Pagar</div>
+        <button class="btn-add" data-act="novo-conta">+ Nova</button>
+      </div>
+      <div class="tabs">
+        <button class="tab active" data-act="f-contas" data-filtro="todas">Todas</button>
+        <button class="tab" data-act="f-contas" data-filtro="pendente">Pendentes</button>
+        <button class="tab" data-act="f-contas" data-filtro="pago">Pagas</button>
+        <button class="tab" data-act="f-contas" data-filtro="atrasado">Atrasadas</button>
+      </div>
+      <div id="contas-content"></div>
+    </div>
+
+    <div class="page" id="page-lancamentos">
+      <div class="section-header">
+        <div class="section-title">Lançamentos</div>
+        <button class="btn-add" data-act="novo-lanc">+ Novo</button>
+      </div>
+      <div class="tabs">
+        <button class="tab active" data-act="f-lanc" data-filtro="todos">Todos</button>
+        <button class="tab" data-act="f-lanc" data-filtro="entrada">Entradas</button>
+        <button class="tab" data-act="f-lanc" data-filtro="saida">Saídas</button>
+      </div>
+      <div class="tabs">
+        <button class="tab active" data-act="f-quem" data-quem="todos">Todos</button>
+        <button class="tab" data-act="f-quem" data-quem="Bruno">Bruno</button>
+        <button class="tab" data-act="f-quem" data-quem="Nanda">Nanda</button>
+        <button class="tab" data-act="f-quem" data-quem="Família">Família</button>
+      </div>
+      <div id="lancamentos-content"></div>
+    </div>
+
+    <div class="page" id="page-analise">
+      <div id="analise-content"></div>
+    </div>
+  </main>
+
+  <nav class="bottom-nav" aria-label="Navegação principal">
+    <button class="nav-item active" data-act="page" data-page="home"><span class="icon" aria-hidden="true">⌂</span>Dashboard</button>
+    <button class="nav-item" data-act="page" data-page="contas"><span class="icon" aria-hidden="true">≡</span>Contas</button>
+    <button class="nav-item" data-act="page" data-page="lancamentos"><span class="icon" aria-hidden="true">±</span>Lançamentos</button>
+    <button class="nav-item" data-act="page" data-page="analise"><span class="icon" aria-hidden="true">◑</span>Análise</button>
+  </nav>
+
+  <!-- MODAL CONTA -->
+  <div class="modal-overlay" id="modal-conta">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-conta-title">
+      <div class="modal-title" id="modal-conta-title">Nova Conta a Pagar</div>
+      <input type="hidden" id="conta-id" />
+
+      <div class="form-group">
+        <label class="form-label" for="conta-nome">Nome / Descrição</label>
+        <input class="form-input" id="conta-nome" maxlength="120" placeholder="Ex: Aluguel, Internet..." />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="conta-valor">Valor (R$)</label>
+          <input class="form-input" id="conta-valor" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="conta-categoria">Categoria</label>
+          <select class="form-select" id="conta-categoria">
+            <option value="moradia">🏠 Moradia</option>
+            <option value="alimentacao">🍔 Alimentação</option>
+            <option value="saude">💊 Saúde</option>
+            <option value="transporte">🚗 Transporte</option>
+            <option value="educacao">📚 Educação</option>
+            <option value="lazer">🎮 Lazer</option>
+            <option value="servicos">📱 Serviços</option>
+            <option value="emprestimo">💰 Empréstimo</option>
+            <option value="cartao">💳 Cartão</option>
+            <option value="outros">📦 Outros</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <span class="form-label">Tipo de Conta</span>
+        <div class="tipo-group">
+          <button type="button" class="tipo-btn active" data-act="tipo-conta" data-tipo="fixa">📅 Fixa</button>
+          <button type="button" class="tipo-btn" data-act="tipo-conta" data-tipo="parcelada">🔢 Parcelada</button>
+          <button type="button" class="tipo-btn" data-act="tipo-conta" data-tipo="esporadica">📌 Esporádica</button>
+        </div>
+        <div class="sub" style="font-size:12px;color:var(--text2);margin-top:6px">Fixas e parceladas são criadas automaticamente nos meses seguintes.</div>
+      </div>
+
+      <div class="conditional show" id="cond-dia">
+        <div class="form-group">
+          <label class="form-label" for="conta-dia">Dia do vencimento</label>
+          <input class="form-input" id="conta-dia" type="number" min="1" max="31" inputmode="numeric" placeholder="Ex: 10" />
+        </div>
+      </div>
+
+      <div class="conditional" id="cond-parcelas">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="conta-parcela-atual">Parcela atual</label>
+            <input class="form-input" id="conta-parcela-atual" type="number" min="1" inputmode="numeric" placeholder="Ex: 3" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="conta-total-parcelas">Total de parcelas</label>
+            <input class="form-input" id="conta-total-parcelas" type="number" min="1" max="360" inputmode="numeric" placeholder="Ex: 12" />
+          </div>
+        </div>
+      </div>
+
+      <div class="conditional" id="cond-data">
+        <div class="form-group">
+          <label class="form-label" for="conta-data">Data de vencimento</label>
+          <input class="form-input" id="conta-data" type="date" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="conta-obs">Observação (opcional)</label>
+        <input class="form-input" id="conta-obs" maxlength="300" placeholder="Alguma observação..." />
+      </div>
+
+      <label class="check-row" id="row-proximas" style="display:none">
+        <input type="checkbox" id="conta-proximas" /> Aplicar também às próximas ocorrências
+      </label>
+
+      <button class="btn-salvar" data-act="salvar-conta">Salvar Conta</button>
+      <button class="btn-cancelar" data-act="fechar" data-modal="modal-conta">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- MODAL LANÇAMENTO -->
+  <div class="modal-overlay" id="modal-lancamento">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-lanc-title">
+      <div class="modal-title" id="modal-lanc-title">Novo Lançamento</div>
+      <input type="hidden" id="lanc-id" />
+
+      <div class="form-group">
+        <span class="form-label">Tipo</span>
+        <div class="tipo-group">
+          <button type="button" class="tipo-btn active entrada" data-act="tipo-lanc" data-tipo="entrada">⬆️ Entrada</button>
+          <button type="button" class="tipo-btn" data-act="tipo-lanc" data-tipo="saida">⬇️ Saída</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="lanc-desc">Descrição</label>
+        <input class="form-input" id="lanc-desc" maxlength="120" placeholder="Ex: Salário, Mercado..." />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="lanc-valor">Valor (R$)</label>
+          <input class="form-input" id="lanc-valor" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="lanc-data">Data</label>
+          <input class="form-input" id="lanc-data" type="date" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="lanc-quem">Quem?</label>
+        <select class="form-select" id="lanc-quem">
+          <option value="Bruno">Bruno</option>
+          <option value="Nanda">Nanda</option>
+          <option value="Família">Família</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="lanc-categoria">Categoria</label>
+        <select class="form-select" id="lanc-categoria">
+          <option value="salario">💵 Salário</option>
+          <option value="beneficio">🎁 Benefício</option>
+          <option value="extra">💼 Extra</option>
+          <option value="alimentacao">🍔 Alimentação</option>
+          <option value="transporte">🚗 Transporte</option>
+          <option value="saude">💊 Saúde</option>
+          <option value="lazer">🎮 Lazer</option>
+          <option value="educacao">📚 Educação</option>
+          <option value="servicos">📱 Serviços</option>
+          <option value="moradia">🏠 Moradia</option>
+          <option value="outros">📦 Outros</option>
+        </select>
+      </div>
+
+      <div class="sub" style="font-size:12px;color:var(--text2);margin-bottom:8px">Contas pagas já geram a saída sozinhas — não lance de novo aqui.</div>
+      <button class="btn-salvar" data-act="salvar-lanc">Salvar Lançamento</button>
+      <button class="btn-cancelar" data-act="fechar" data-modal="modal-lancamento">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- MODAL EXCLUIR (conta recorrente) -->
+  <div class="modal-overlay" id="modal-excluir">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="excluir-titulo">
+      <div class="modal-title" id="excluir-titulo">Excluir conta</div>
+      <p style="text-align:center;margin-bottom:16px;font-size:14px">“<span id="excluir-nome"></span>” se repete nos meses seguintes. O que excluir?</p>
+      <button class="btn-salvar" style="background:var(--card);color:var(--text);border:1.5px solid var(--border)" data-act="excluir-uma">Só esta</button>
+      <button class="btn-salvar" style="background:var(--red)" data-act="excluir-proximas">Esta e as próximas</button>
+      <button class="btn-cancelar" data-act="fechar" data-modal="modal-excluir">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- MODAL ORÇAMENTO -->
+  <div class="modal-overlay" id="modal-orc">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="orc-titulo">
+      <div class="modal-title">Orçamento mensal</div>
+      <p id="orc-titulo" style="text-align:center;font-weight:600;margin-bottom:14px"></p>
+      <div class="form-group">
+        <label class="form-label" for="orc-valor">Limite por mês (R$)</label>
+        <input class="form-input" id="orc-valor" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00" />
+      </div>
+      <button class="btn-salvar" data-act="salvar-orc">Salvar</button>
+      <button class="btn-cancelar" id="orc-remover" style="color:var(--red)" data-act="remover-orc">Remover orçamento</button>
+      <button class="btn-cancelar" data-act="fechar" data-modal="modal-orc">Cancelar</button>
+    </div>
+  </div>
+
+  <button class="fab" id="fab-btn" data-act="novo-lanc" aria-label="Novo lançamento">+</button>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<noscript>Este app precisa de JavaScript.</noscript>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="./config.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>
