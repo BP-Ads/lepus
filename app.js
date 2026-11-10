@@ -257,19 +257,23 @@
     const r = S.resumo || {};
     const saldoAtual = Number(r.entradas || 0) - Number(r.saidas || 0);
     const pendFim = Number(r.pendente_ate_fim_mes || 0);
-    const previsto = saldoAtual - pendFim;
+    const recFim = Number(r.a_receber_ate_fim_mes || 0);
+    const previsto = saldoAtual + recFim - pendFim;
     const mesNome = MESES[S.mes].toLowerCase();
     const fimLabel = `${pad(diasNoMes(S.ano, S.mes))}/${pad(S.mes + 1)}`;
-    const entM = soma(S.lancs.filter((l) => l.tipo === 'entrada'));
+    const entM = soma(S.lancs.filter((l) => l.tipo === 'entrada' && l.recebido));
+    const recM = soma(S.lancs.filter((l) => l.tipo === 'entrada' && !l.recebido));
     const saiM = soma(S.lancs.filter((l) => l.tipo === 'saida'));
     const pagoM = soma(S.contas.filter((c) => c.pago));
     const totM = soma(S.contas);
     const pct = totM > 0 ? Math.round((pagoM / totM) * 100) : 0;
 
     let linha;
-    if (pendFim === 0) linha = `Nenhuma conta em aberto até <strong>${fimLabel}</strong>.`;
-    else if (previsto >= 0) linha = `Pagando o que está em aberto até <strong>${fimLabel}</strong>, você termina ${esc(mesNome)} com <strong>${fmt(previsto)}</strong>.`;
-    else linha = `Pagando o que está em aberto até <strong>${fimLabel}</strong>, faltam <strong>${fmt(-previsto)}</strong> para fechar ${esc(mesNome)}.`;
+    const cond = recFim > 0 && pendFim > 0 ? 'Recebendo o que falta e pagando o que está em aberto'
+      : recFim > 0 ? 'Recebendo o que falta' : 'Pagando o que está em aberto';
+    if (pendFim === 0 && recFim === 0) linha = `Nenhuma conta em aberto nem entrada a receber até <strong>${fimLabel}</strong>.`;
+    else if (previsto >= 0) linha = `${cond} até <strong>${fimLabel}</strong>, você termina ${esc(mesNome)} com <strong>${fmt(previsto)}</strong>.`;
+    else linha = `${cond} até <strong>${fimLabel}</strong>, faltam <strong>${fmt(-previsto)}</strong> para fechar ${esc(mesNome)}.`;
 
     let html = `<div class="stack">
       <section class="hero" aria-label="Saldo">
@@ -291,7 +295,8 @@
     } else {
       html += `<section><div class="sec-head"><h2>${esc(MESES[S.mes])} em números</h2></div>
         <ul class="ledger facts">
-          <li class="row">${chip('arrow-down-left', 'pos')}<div class="fact-name">Entradas</div><div class="amount pos">${fmt(entM)}</div></li>
+          <li class="row">${chip('arrow-down-left', 'pos')}<div class="fact-name">Entradas recebidas</div><div class="amount pos">${fmt(entM)}</div></li>
+          ${recM ? `<li class="row">${chip('clock')}<div class="fact-name">A receber</div><div class="amount">${fmt(recM)}</div></li>` : ''}
           <li class="row">${chip('arrow-up-right', 'neg')}<div class="fact-name">Saídas</div><div class="amount neg">${fmt(saiM)}</div></li>
           <li class="row">${chip('circle-check')}<div class="fact-name">Contas pagas<div class="fact-sub">${totM ? `${pct}% de ${fmt(totM)}` : 'Nenhuma conta no mês'}</div></div><div class="amount">${fmt(pagoM)}</div></li>
           ${totM ? `<li class="meter-row"><div class="meter" role="progressbar" aria-label="Contas pagas no mês" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><i style="width:${pct}%"></i></div></li>` : ''}
@@ -373,24 +378,28 @@
     $('lancamentos-content').innerHTML = dias.map((d) => `<div class="grp"><h3 class="grp-title">${esc(rotuloDia(d.data))}</h3>
       <ul class="ledger">${d.itens.map((l) => {
         const ent = l.tipo === 'entrada';
-        const sub = `${l.quem}, ${catNome(l.categoria)}${l.conta_id ? ' (conta paga)' : ''}`;
-        return `<li class="row lead-chip">${chip(catIconName(l.categoria), ent ? 'pos' : 'neg')}
+        const pend = ent && !l.recebido;
+        const sub = `${l.quem}, ${catNome(l.categoria)}${l.conta_id ? ' (conta paga)' : ''}${pend ? ', a receber' : ''}`;
+        const lead = ent
+          ? `<button class="check" data-act="toggle-recebido" data-id="${esc(l.id)}" aria-pressed="${!pend}" aria-label="${pend ? 'Marcar como recebida:' : 'Desfazer recebimento de'} ${esc(l.descricao)}"><span>${ico('check')}</span></button>`
+          : chip(catIconName(l.categoria), 'neg');
+        return `<li class="row${ent ? '' : ' lead-chip'}">${lead}
           <button class="row-main" data-act="edit-lanc" data-id="${esc(l.id)}" aria-label="Editar ${esc(l.descricao)}">
             <div class="row-title"><span>${esc(l.descricao)}</span>${l.conta_id ? `<span class="mini" title="Saída gerada por uma conta paga">${ico('link')}</span>` : ''}</div>
             <div class="row-sub">${esc(sub)}</div>
           </button>
-          <div class="row-trail"><div class="amount ${ent ? 'pos' : 'neg'}">${ent ? '+' : '−'}${fmt(l.valor_centavos)}</div></div>
+          <div class="row-trail"><div class="amount ${pend ? '' : ent ? 'pos' : 'neg'}">${ent ? '+' : '−'}${fmt(l.valor_centavos)}</div></div>
         </li>`;
       }).join('')}</ul></div>`).join('');
   }
 
   async function renderAnalise() {
-    const entM = soma(S.lancs.filter((l) => l.tipo === 'entrada'));
+    const entM = soma(S.lancs.filter((l) => l.tipo === 'entrada' && l.recebido));
     const saiM = soma(S.lancs.filter((l) => l.tipo === 'saida'));
     const pendM = soma(S.contas.filter((c) => !c.pago));
 
     const pessoas = PESSOAS.map((p) => ({
-      p, e: soma(S.lancs.filter((l) => l.quem === p && l.tipo === 'entrada')),
+      p, e: soma(S.lancs.filter((l) => l.quem === p && l.tipo === 'entrada' && l.recebido)),
       s: soma(S.lancs.filter((l) => l.quem === p && l.tipo === 'saida'))
     })).filter((x) => x.e || x.s);
     const pessoasHtml = pessoas.length ? pessoas.map((x) => `<div class="person">
@@ -444,10 +453,10 @@
       for (let i = 0; i < 6; i++) { meses.unshift({ y, m }); m--; if (m < 0) { m = 11; y--; } }
       const ini = ymd(meses[0].y, meses[0].m, 1);
       const fim = ymd(S.ano, S.mes, diasNoMes(S.ano, S.mes));
-      const dados = must(await sb.from('lancamentos').select('tipo,valor_centavos,data').gte('data', ini).lte('data', fim));
+      const dados = must(await sb.from('lancamentos').select('tipo,valor_centavos,data,recebido').gte('data', ini).lte('data', fim));
       if (S.page !== 'analise') return;
       const por = Object.fromEntries(meses.map(({ y, m }) => [`${y}-${pad(m + 1)}`, { e: 0, s: 0 }]));
-      dados.forEach((d) => { const k = d.data.slice(0, 7); if (por[k]) por[k][d.tipo === 'entrada' ? 'e' : 's'] += Number(d.valor_centavos); });
+      dados.filter((d) => d.tipo === 'saida' || d.recebido).forEach((d) => { const k = d.data.slice(0, 7); if (por[k]) por[k][d.tipo === 'entrada' ? 'e' : 's'] += Number(d.valor_centavos); });
       const max = Math.max(1, ...Object.values(por).flatMap((v) => [v.e, v.s]));
       const cols = meses.map(({ y, m }) => {
         const v = por[`${y}-${pad(m + 1)}`];
@@ -519,6 +528,7 @@
   function setTipoLanc(tipo) {
     S.tipoLanc = tipo;
     document.querySelectorAll('#modal-lancamento [data-act=tipo-lanc]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.tipo === tipo));
+    $('row-recebido').style.display = tipo === 'entrada' ? '' : 'none';
   }
 
   function abrirConta(id) {
@@ -558,6 +568,8 @@
     $('lanc-valor').value = l ? valorParaInput(l.valor_centavos) : '';
     $('lanc-data').value = l ? l.data : hojeStr();
     $('lanc-quem').value = l ? l.quem : 'Bruno';
+    S.recebidoTocado = !!l;
+    $('lanc-recebido').checked = l ? l.recebido !== false : $('lanc-data').value <= hojeStr();
     const tipoNovo = tipoInicial === 'saida' ? 'saida' : 'entrada';
     $('lanc-categoria').value = l ? l.categoria : (tipoNovo === 'saida' ? 'alimentacao' : 'salario');
     setTipoLanc(l ? l.tipo : tipoNovo);
@@ -647,11 +659,20 @@
     if (!descricao || descricao.length > 120) throw new Error('Informe uma descrição de até 120 caracteres.');
     if (!Number.isFinite(valor) || valor <= 0) throw new Error('Informe um valor válido, por exemplo 350,00.');
     if (!data) throw new Error('Informe a data.');
-    const row = { tipo: S.tipoLanc, descricao, valor_centavos: valor, data, quem: $('lanc-quem').value, categoria: $('lanc-categoria').value };
+    const row = { tipo: S.tipoLanc, descricao, valor_centavos: valor, data, quem: $('lanc-quem').value, categoria: $('lanc-categoria').value,
+      recebido: S.tipoLanc === 'entrada' ? $('lanc-recebido').checked : true };
     if (id) must(await sb.from('lancamentos').update(row).eq('id', id));
     else must(await sb.from('lancamentos').insert(row));
     fechar('modal-lancamento');
     toast('Lançamento salvo');
+    await carregar();
+  }
+
+  async function toggleRecebido(id) {
+    const l = S.lancs.find((x) => x.id === id);
+    if (!l) return;
+    must(await sb.from('lancamentos').update({ recebido: !l.recebido }).eq('id', id));
+    toast(l.recebido ? 'Entrada marcada como a receber' : 'Entrada recebida');
     await carregar();
   }
 
@@ -702,7 +723,7 @@
     const val = (c) => (c / 100).toFixed(2).replace('.', ',');
     S.lancs.forEach((l) => linhas.push([
       l.tipo === 'entrada' ? 'Entrada' : 'Saída', l.data, l.descricao, catNome(l.categoria),
-      (l.tipo === 'entrada' ? '' : '-') + val(l.valor_centavos), l.quem, l.conta_id ? 'Conta paga' : ''
+      (l.tipo === 'entrada' ? '' : '-') + val(l.valor_centavos), l.quem, l.conta_id ? 'Conta paga' : (l.tipo === 'entrada' ? (l.recebido ? 'Recebida' : 'A receber') : '')
     ]));
     S.contas.forEach((c) => linhas.push([
       'Conta', c.vencimento, c.nome + (c.tipo === 'parcelada' ? ` (${c.parcela_atual}/${c.total_parcelas})` : ''),
@@ -762,6 +783,7 @@
     'salvar-conta': () => salvarConta(),
     'salvar-lanc': () => salvarLanc(),
     'toggle-pago': (el) => togglePago(el.dataset.id),
+    'toggle-recebido': (el) => toggleRecebido(el.dataset.id),
     'del-conta': (el) => {
       const c = acharConta(el.dataset.id);
       if (c) pedirExclusao({ id: c.id, tipo: 'conta', recorrente: recorrente(c), nome: c.nome });
@@ -778,6 +800,10 @@
     'csv': () => exportarCsv()
   };
 
+  document.addEventListener('change', (e) => {
+    if (e.target.id === 'lanc-recebido') S.recebidoTocado = true;
+    if (e.target.id === 'lanc-data' && !S.recebidoTocado) $('lanc-recebido').checked = !!e.target.value && e.target.value <= hojeStr();
+  });
   document.addEventListener('click', async (e) => {
     const el = e.target.closest('[data-act]');
     if (!el) {

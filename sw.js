@@ -1,8 +1,8 @@
 // Mude a versão sempre que quiser forçar a limpeza do cache antigo.
-const CACHE = 'lepus-v7';
+const CACHE = 'lepus-v9';
 const SCOPE = self.registration.scope; // funciona em qualquer nome de repositório
 const url = (p) => new URL(p, SCOPE).href;
-const PRECACHE = ['./', 'index.html', 'styles.css', 'theme.js', 'icons.js', 'app.js', 'config.js', 'manifest.json',
+const PRECACHE = ['./', 'index.html', 'styles.css', 'theme.js', 'icons.js', 'app.js', 'vendor/supabase.js', 'config.js', 'manifest.json',
   'fonts/sora-latin-wght-normal.woff2', 'fonts/inter-latin-wght-normal.woff2',
   'assets/logo.png', 'assets/logo-dark.png', 'assets/symbol-hero.png',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'].map(url);

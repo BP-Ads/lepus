@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'" />
+  <meta name="referrer" content="no-referrer" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'" />
   <meta name="theme-color" id="meta-theme-color" content="#ffffff" />
   <meta name="color-scheme" content="light dark" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -242,6 +243,11 @@
         </div>
       </div>
 
+      <label class="check-row" id="row-recebido">
+        <input type="checkbox" id="lanc-recebido" />
+        <span>Já recebi este valor</span>
+      </label>
+
       <div class="form-row">
         <div class="field">
           <label for="lanc-quem">Quem</label>
@@ -336,7 +342,7 @@
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <noscript>O Lepus precisa de JavaScript para funcionar.</noscript>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="vendor/supabase.js"></script>
 <script src="./config.js"></script>
 <script src="./icons.js"></script>
 <script src="./app.js"></script>
