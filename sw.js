@@ -1,9 +1,11 @@
 // Mude a versão sempre que quiser forçar a limpeza do cache antigo.
-const CACHE = 'lepus-v5';
+const CACHE = 'lepus-v7';
 const SCOPE = self.registration.scope; // funciona em qualquer nome de repositório
 const url = (p) => new URL(p, SCOPE).href;
-const PRECACHE = ['./', 'index.html', 'app.js', 'config.js', 'manifest.json',
-  'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'assets/logo.png', 'assets/symbol.png'].map(url);
+const PRECACHE = ['./', 'index.html', 'styles.css', 'theme.js', 'icons.js', 'app.js', 'config.js', 'manifest.json',
+  'fonts/sora-latin-wght-normal.woff2', 'fonts/inter-latin-wght-normal.woff2',
+  'assets/logo.png', 'assets/logo-dark.png', 'assets/symbol-hero.png',
+  'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'].map(url);
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
@@ -29,7 +31,7 @@ self.addEventListener('fetch', (event) => {
   if (u.origin !== self.location.origin) return; // Supabase, fontes, CDN: direto na rede, sem cache
 
   // Ícones e manifest: cache primeiro. Todo o resto (HTML/JS/config): rede primeiro, cache só offline.
-  const estatico = /\/icons\//.test(u.pathname) || /manifest\.json$/.test(u.pathname);
+  const estatico = /\/(icons|fonts|assets)\//.test(u.pathname) || /manifest\.json$/.test(u.pathname);
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
     if (estatico) {

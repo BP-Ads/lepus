@@ -3,7 +3,8 @@
 App estático (HTML/JS) hospedado no GitHub Pages, com banco e login no Supabase.
 
 ```
-index.html · app.js · config.js · sw.js · manifest.json · icons/ · assets/ (logo)
+index.html · styles.css · app.js · theme.js · icons.js · config.js · sw.js · manifest.json
+fonts/ (Sora + Inter, locais) · icons/ (ícone do app) · assets/ (logos claro/escuro, símbolo)
 supabase/schema.sql              ← tabelas, regras de segurança (RLS) e funções
 supabase/importar_firebase.py    ← (opcional) traz os dados antigos do Firebase
 ```
@@ -62,8 +63,15 @@ Para publicar uma atualização, basta dar push: o HTML/JS são buscados da rede
 | Manifest/ícones/theme-color | Ícones `any` e `maskable` separados, `apple-touch-icon`, cor única |
 | Sem análise por pessoa / orçamento / exportação | Aba Análise: por pessoa, por categoria com orçamento, 6 meses, CSV |
 
+## Visual e modo escuro
+
+- Identidade Lepus (navy `#001344`, azul `#006DFE`), fontes Sora (títulos/valores) e Inter (texto), ícones em SVG embutido.
+- **Modo escuro**: segue o sistema por padrão; em *Ajustes* (ícone de pessoa no topo) dá para forçar Claro ou Escuro. A escolha fica salva no aparelho e a barra do navegador muda de cor junto.
+- Botão **+** central da barra inferior: escolhe entre Entrada, Saída ou Conta a pagar.
+- Design tokens ficam no início do `styles.css` (`:root` e bloco escuro) — para ajustar cores, mexa só ali.
+
 ## Observações
 
 - A CSP no `index.html` libera só `*.supabase.co` e `cdn.jsdelivr.net`. Se usar domínio próprio no Supabase, ajuste `connect-src`.
-- O ícone é novo (barras + moeda). Para usar o seu, substitua os PNGs de `icons/` mantendo os nomes.
+- Para trocar o ícone do app, substitua os PNGs de `icons/` mantendo os nomes.
 - Para encerrar uma conta fixa (ex.: cancelou a internet), exclua com **“Esta e as próximas”**.
