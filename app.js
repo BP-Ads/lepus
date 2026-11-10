@@ -643,7 +643,7 @@
     const csv = '﻿' + linhas.map((l) => l.map(csvCelula).join(';')).join('\r\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const a = document.createElement('a');
-    a.href = url; a.download = `familia-coelho-${S.ano}-${pad(S.mes + 1)}.csv`;
+    a.href = url; a.download = `lepus-${S.ano}-${pad(S.mes + 1)}.csv`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }

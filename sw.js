@@ -1,9 +1,9 @@
 // Mude a versão sempre que quiser forçar a limpeza do cache antigo.
-const CACHE = 'familia-coelho-v4';
+const CACHE = 'lepus-v5';
 const SCOPE = self.registration.scope; // funciona em qualquer nome de repositório
 const url = (p) => new URL(p, SCOPE).href;
 const PRECACHE = ['./', 'index.html', 'app.js', 'config.js', 'manifest.json',
-  'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'].map(url);
+  'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'assets/logo.png', 'assets/symbol.png'].map(url);
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {

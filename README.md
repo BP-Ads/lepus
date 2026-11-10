@@ -1,9 +1,9 @@
-# Família Coelho — controle financeiro (PWA + Supabase)
+# Lepus — seu copiloto financeiro (PWA + Supabase)
 
 App estático (HTML/JS) hospedado no GitHub Pages, com banco e login no Supabase.
 
 ```
-index.html · app.js · config.js · sw.js · manifest.json · icons/
+index.html · app.js · config.js · sw.js · manifest.json · icons/ · assets/ (logo)
 supabase/schema.sql              ← tabelas, regras de segurança (RLS) e funções
 supabase/importar_firebase.py    ← (opcional) traz os dados antigos do Firebase
 ```

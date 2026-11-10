@@ -8,8 +8,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Família Coelho" />
-  <title>Família Coelho</title>
+  <meta name="apple-mobile-web-app-title" content="Lepus" />
+  <title>Lepus — Seu copiloto financeiro</title>
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" type="image/png" href="./icons/icon-192.png" />
   <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
@@ -436,6 +436,19 @@
     .month-nav { gap: 4px; }
     .month-label { min-width: 0; white-space: nowrap; font-size: 14px; padding: 0 2px; }
 
+    /* ===== IDENTIDADE VISUAL LEPUS ===== */
+    :root {
+      --navy: #001344; --blue-dark: #003595; --blue-light: #80b3fd; --blue-pale: #d0e1fd;
+      --bg: #f4f7fc; --text: #001344; --text2: #5b6785; --border: #e2e8f3;
+      --blue: #006dfe; --blue-bg: #e8f1ff;
+    }
+    .fab { box-shadow: 0 4px 16px rgba(0,109,254,0.4); }
+    .progress-fill { background: linear-gradient(90deg, var(--blue-dark), var(--blue)); }
+    .header-logo { height: 26px; width: auto; display: block; }
+    .login-logo { width: 210px; max-width: 70%; height: auto; display: block; margin: 6px auto 8px; }
+    .login-tag { text-align: center; color: var(--text2); font-size: 13px; margin-bottom: 22px; line-height: 1.4; }
+    .login-tag strong { color: var(--blue); font-weight: 600; }
+
   </style>
 </head>
 <body>
@@ -443,7 +456,8 @@
 <!-- TELA DE LOGIN -->
 <div class="modal-overlay open" id="tela-login" style="align-items:center;background:var(--bg)">
   <div class="modal" style="border-radius:24px;max-width:340px">
-    <div class="modal-title">🐇 Família Coelho</div>
+    <img class="login-logo" src="./assets/logo.png" alt="Lepus" />
+    <p class="login-tag">Seu copiloto financeiro para uma <strong>vida ainda melhor.</strong></p>
     <div class="form-group">
       <label class="form-label" for="login-email">E-mail</label>
       <input class="form-input" id="login-email" type="email" autocomplete="username" placeholder="seuemail@exemplo.com" />
@@ -468,7 +482,7 @@
 <div id="app-root" style="display:none">
 
   <div class="header">
-    <div class="header-title">Família <span>Coelho</span></div>
+    <img class="header-logo" src="./assets/logo.png" alt="Lepus" />
     <div class="month-nav">
       <button data-act="mes" data-dir="-1" aria-label="Mês anterior">‹</button>
       <div class="month-label" id="monthLabel" aria-live="polite"></div>

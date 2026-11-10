@@ -1,5 +1,5 @@
 -- =====================================================================
--- Família Coelho — schema Supabase
+-- Lepus — schema Supabase
 -- Cole inteiro no SQL Editor do Supabase e execute (pode rodar de novo: é idempotente).
 -- Valores em CENTAVOS (bigint). Datas de vencimento são sempre datas reais (uma linha por mês).
 -- =====================================================================
