@@ -9,22 +9,25 @@
   const MESES_CURTOS = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
   const SEMANA = ['dom','seg','ter','qua','qui','sex','sáb'];
   // categoria -> [ícone, nome]
-  const CATS = {
+  const CATS_PADRAO = {
     moradia: ['house','Moradia'], alimentacao: ['utensils','Alimentação'], saude: ['heart-pulse','Saúde'],
     transporte: ['car','Transporte'], educacao: ['graduation-cap','Educação'], lazer: ['gamepad-2','Lazer'],
     servicos: ['zap','Serviços'], emprestimo: ['landmark','Empréstimo'], cartao: ['credit-card','Cartão'],
     investimentos: ['trending-up','Investimentos'], conforto: ['sofa','Conforto'], metas: ['plane','Metas'],
     salario: ['banknote','Salário'], beneficio: ['gift','Benefício'], extra: ['briefcase','Extra'], outros: ['package','Outros']
   };
-  const catIconName = (c) => (CATS[c] || CATS.outros)[0];
+  let CATS = { ...CATS_PADRAO };
+  const catIconName = (c) => (CATS[c] || CATS.outros || ['package'])[0];
   const catNome = (c) => (CATS[c] ? CATS[c][1] : (c || 'Outros'));
   const PESSOAS = ['Bruno', 'Nanda', 'Família'];
   // Plano do mês: categorias de gasto (as de entrada ficam de fora) e modelo padrão
-  const CATS_GASTO = Object.keys(CATS).filter((k) => !['salario', 'beneficio', 'extra'].includes(k));
+  // Ícones que dá para escolher ao criar/editar categorias
+  const ICONES_CATEGORIA = ['house', 'utensils', 'shopping-cart', 'car', 'fuel', 'heart-pulse', 'pill', 'graduation-cap', 'book-open', 'gamepad-2',
+    'coffee', 'shirt', 'smartphone', 'zap', 'wrench', 'baby', 'paw-print', 'dumbbell', 'plane', 'sofa', 'credit-card', 'landmark',
+    'trending-up', 'piggy-bank', 'banknote', 'gift', 'briefcase', 'target', 'tag', 'package'];
   const AREA_ICONE = { liberdade: 'trending-up', fixos: 'house', conforto: 'sofa', metas: 'plane', prazeres: 'gamepad-2', conhecimento: 'graduation-cap' };
   const PLANO_PADRAO = { liberdade: 25, fixos: 30, conforto: 15, metas: 15, prazeres: 10, conhecimento: 5 };
-  const MAPA_PADRAO = { investimentos: 'liberdade', moradia: 'fixos', alimentacao: 'fixos', saude: 'fixos', transporte: 'fixos', servicos: 'fixos',
-    emprestimo: 'fixos', conforto: 'conforto', cartao: 'conforto', outros: 'conforto', metas: 'metas', lazer: 'prazeres', educacao: 'conhecimento' };
+
 
   // ===== Ícones (Lucide, embutidos em icons.js) =====
   const ICONS = window.LEPUS_ICONS || {};
@@ -116,7 +119,7 @@
   const hoje0 = new Date();
   const S = {
     userId: null, email: '', ano: hoje0.getFullYear(), mes: hoje0.getMonth(), page: 'home',
-    contas: [], lancs: [], atrasadas: [], proximas: [], resumo: {}, orc: {}, plano: null,
+    contas: [], lancs: [], atrasadas: [], proximas: [], resumo: {}, orc: {}, plano: null, cats: null, paginaAnterior: 'home',
     filtroContas: 'todas', filtroLanc: 'todos', filtroQuem: 'todos',
     tipoConta: 'fixa', tipoLanc: 'entrada', excluindo: null, orcCat: null, token: 0
   };
@@ -182,7 +185,7 @@
   function sair() {
     S.userId = null;
     if (canal && sb) { sb.removeChannel(canal); canal = null; }
-    S.contas = []; S.lancs = []; S.atrasadas = []; S.proximas = []; S.resumo = {}; S.orc = {}; S.plano = null;
+    S.contas = []; S.lancs = []; S.atrasadas = []; S.proximas = []; S.resumo = {}; S.orc = {}; S.plano = null; S.cats = null; CATS = { ...CATS_PADRAO };
     fecharTodos();
     mostrarLogin('');
   }
@@ -204,7 +207,7 @@
     const ini = ymd(S.ano, S.mes, 1);
     const fim = ymd(S.ano, S.mes, diasNoMes(S.ano, S.mes));
     try {
-      const [c, l, atr, prox, res, orc, pa, pm, pp] = await Promise.all([
+      const [c, l, atr, prox, res, orc, pa, pm, pp, pc] = await Promise.all([
         sb.from('contas').select('*').gte('vencimento', ini).lte('vencimento', fim).order('vencimento'),
         sb.from('lancamentos').select('*').gte('data', ini).lte('data', fim).order('data', { ascending: false }),
         sb.from('contas').select('*').eq('pago', false).lt('vencimento', hoje).order('vencimento'),
@@ -213,19 +216,27 @@
         sb.from('orcamentos').select('*'),
         sb.from('areas').select('*').order('ordem'),
         sb.from('categoria_area').select('*'),
-        sb.from('planejamento').select('*').limit(1)
+        sb.from('planejamento').select('*').limit(1),
+        sb.from('categorias').select('*').order('ordem')
       ]);
       if (tk !== S.token) return; // chegou resposta de uma navegação mais antiga
       S.contas = must(c); S.lancs = must(l); S.atrasadas = must(atr); S.proximas = must(prox);
       S.resumo = must(res) || {};
       S.orc = Object.fromEntries(must(orc).map((o) => [o.categoria, Number(o.limite_centavos)]));
       // O plano é opcional: se o SQL novo ainda não foi rodado, o resto do app segue normal.
-      if (pa.error || pm.error || pp.error || !(pa.data || []).length) S.plano = null;
+      // Categorias editáveis (se o SQL novo ainda não rodou, usa a lista padrão embutida)
+      if (!pc.error && (pc.data || []).length) {
+        S.cats = pc.data;
+        CATS = Object.fromEntries(pc.data.map((k) => [k.slug, [k.icone, k.nome]]));
+        if (!CATS.outros) CATS.outros = CATS_PADRAO.outros;
+      } else { S.cats = null; CATS = { ...CATS_PADRAO }; }
+      if (pa.error || pp.error || !(pa.data || []).length) S.plano = null;
       else {
         const cfg = (pp.data || [])[0] || {};
         S.plano = {
           areas: pa.data.map((a) => ({ slug: a.slug, nome: a.nome, percentual: Number(a.percentual), ordem: a.ordem, minimo: !!a.minimo })),
-          mapa: Object.fromEntries((pm.data || []).map((m) => [m.categoria, m.area])),
+          mapa: S.cats ? Object.fromEntries(S.cats.filter((k) => k.tipo === 'gasto' && k.area).map((k) => [k.slug, k.area]))
+            : Object.fromEntries((pm.data || []).map((m) => [m.categoria, m.area])),
           dizimo: Number(cfg.dizimo_pct || 0),
           receita: cfg.receita_centavos != null ? Number(cfg.receita_centavos) : null
         };
@@ -252,6 +263,8 @@
     else if (S.page === 'contas') renderContas();
     else if (S.page === 'lancamentos') renderLancamentos();
     else if (S.page === 'analise') renderAnalise();
+    else if (S.page === 'ajustes') renderAjustes();
+    preencherCategorias();
   }
 
   function rowConta(c) {
@@ -469,7 +482,7 @@
     const notas = [];
     notas.push(`Base de ${fmt(R.base)} (${R.fonte})${R.dizimo ? `, já sem ${fmt(R.dizimo)} de dízimo ou doação` : ''}.`);
     if (Math.abs(R.somaPct - 100) > 0.001) notas.push(`Os percentuais somam ${String(R.somaPct).replace('.', ',')}%, o ideal é 100%.`);
-    if (R.semArea) notas.push(`${fmt(R.semArea)} em categorias sem área. Ligue-as em Ajustar %.`);
+    if (R.semArea) notas.push(`${fmt(R.semArea)} em categorias sem área. Em Ajustes, toque na categoria para ligá-la a uma área.`);
     return `<section>${titulo}
       <p class="hint" style="margin:-4px 4px 12px">${esc(notas.join(' '))}</p>
       <div class="ledger">${linhas}</div>
@@ -559,6 +572,7 @@
 
   // ===== Navegação =====
   function showPage(page) {
+    if (page === 'ajustes' && S.page !== 'ajustes') S.paginaAnterior = S.page;
     S.page = page;
     document.querySelectorAll('.page').forEach((p) => p.classList.toggle('active', p.id === 'page-' + page));
     document.querySelectorAll('.nav-item').forEach((n) => {
@@ -609,10 +623,30 @@
     $('cond-parcelas').classList.toggle('show', tipo === 'parcelada');
     $('cond-data').classList.toggle('show', tipo === 'esporadica');
   }
-  function setTipoLanc(tipo) {
+  function setTipoLanc(tipo, mantem) {
     S.tipoLanc = tipo;
+    if (!mantem) preencherSelect('lanc-categoria', tipo === 'saida' ? 'gasto' : 'entrada', '');
     document.querySelectorAll('#modal-lancamento [data-act=tipo-lanc]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.tipo === tipo));
     $('row-recebido').style.display = tipo === 'entrada' ? '' : 'none';
+  }
+
+  // Monta as opções dos selects de categoria conforme o tipo (gasto/entrada), mantendo a seleção quando possível
+  function opcoesCategoria(tipo, atual) {
+    const lista = S.cats ? S.cats : Object.keys(CATS_PADRAO).map((k) => ({ slug: k, nome: CATS_PADRAO[k][1], tipo: ['salario', 'beneficio', 'extra'].includes(k) ? 'entrada' : 'gasto' }));
+    let ops = lista.filter((k) => k.tipo === tipo);
+    if (tipo === 'entrada') ops = ops.concat(lista.filter((k) => k.slug === 'outros'));
+    if (atual && !ops.some((k) => k.slug === atual) && CATS[atual]) ops = ops.concat([{ slug: atual, nome: catNome(atual) }]);
+    return ops.map((k) => `<option value="${esc(k.slug)}">${esc(k.nome)}</option>`).join('');
+  }
+  function preencherSelect(id, tipo, valor) {
+    const el = $(id); if (!el) return;
+    const v = valor !== undefined ? valor : el.value;
+    el.innerHTML = opcoesCategoria(tipo, v);
+    if (v && [...el.options].some((o) => o.value === v)) el.value = v;
+  }
+  function preencherCategorias() {
+    preencherSelect('conta-categoria', 'gasto');
+    preencherSelect('lanc-categoria', S.tipoLanc === 'saida' ? 'gasto' : 'entrada');
   }
 
   function abrirConta(id) {
@@ -621,7 +655,7 @@
     $('conta-id').value = c ? c.id : '';
     $('conta-nome').value = c ? c.nome : '';
     $('conta-valor').value = c ? valorParaInput(c.valor_centavos) : '';
-    $('conta-categoria').value = c ? c.categoria : 'outros';
+    preencherSelect('conta-categoria', 'gasto', c ? c.categoria : 'outros');
     $('conta-obs').value = c ? c.obs : '';
     $('conta-dia').value = c && c.dia_venc ? c.dia_venc : '';
     $('conta-parcela-atual').value = c && c.parcela_atual ? c.parcela_atual : '';
@@ -655,8 +689,9 @@
     S.recebidoTocado = !!l;
     $('lanc-recebido').checked = l ? l.recebido !== false : $('lanc-data').value <= hojeStr();
     const tipoNovo = tipoInicial === 'saida' ? 'saida' : 'entrada';
-    $('lanc-categoria').value = l ? l.categoria : (tipoNovo === 'saida' ? 'alimentacao' : 'salario');
-    setTipoLanc(l ? l.tipo : tipoNovo);
+    S.tipoLanc = l ? l.tipo : tipoNovo;
+    preencherSelect('lanc-categoria', S.tipoLanc === 'saida' ? 'gasto' : 'entrada', l ? l.categoria : (tipoNovo === 'saida' ? 'alimentacao' : 'salario'));
+    setTipoLanc(S.tipoLanc, true);
     const del = $('btn-del-lanc');
     del.style.display = l ? '' : 'none';
     del.dataset.id = l ? l.id : '';
@@ -671,12 +706,6 @@
     abrir('modal-orc');
   }
 
-  function abrirConfig() {
-    $('cfg-email').textContent = S.email || '—';
-    $('cfg-avatar').textContent = (S.email || 'L')[0].toUpperCase();
-    marcarTema();
-    abrir('modal-config');
-  }
   function marcarTema() {
     const modo = window.LepusTheme ? window.LepusTheme.modo() : 'auto';
     document.querySelectorAll('[data-act=tema]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.tema === modo));
@@ -779,6 +808,141 @@
     await carregar();
   }
 
+  // ===== Ajustes (plano, categorias, aparência, conta) =====
+  function linhaCategoria(k, subtitulo) {
+    return `<li class="row lead-chip">${chip(k.icone || 'package', '', true)}
+      <button class="row-main" data-act="edit-cat" data-slug="${esc(k.slug)}" aria-label="Editar categoria ${esc(k.nome)}">
+        <div class="row-title"><span>${esc(k.nome)}</span></div>
+        ${subtitulo ? `<div class="row-sub">${esc(subtitulo)}</div>` : ''}
+      </button>
+      <div class="row-trail">${ico('chevron-right')}</div>
+    </li>`;
+  }
+
+  function renderAjustes() {
+    const P = S.plano;
+    const voltar = `<button class="back-link" data-act="page" data-page="${esc(S.paginaAnterior || 'home')}">${ico('arrow-left')}Voltar</button>`;
+
+    let planoSec;
+    if (!P) {
+      planoSec = `<section><div class="sec-head"><h2>Plano do mês</h2></div><div class="ledger">${vazio('target', 'Plano do mês ainda não ativado', 'No Supabase, rode o arquivo migracao_plano_do_mes.sql e recarregue o app.')}</div></section>`;
+    } else {
+      const total = Math.round(P.areas.reduce((t, a) => t + a.percentual, 0) * 100) / 100;
+      planoSec = `<section><div class="sec-head"><h2>Plano do mês</h2><button class="btn ghost small" data-act="plano">Ajustar %</button></div>
+        <ul class="ledger">${P.areas.map((a) => `<li class="row lead-chip">${chip(AREA_ICONE[a.slug] || 'target', '', true)}
+          <div class="row-main"><div class="row-title"><span>${esc(a.nome)}</span></div></div>
+          <div class="row-trail"><div class="amount">${String(a.percentual).replace('.', ',')}%</div></div></li>`).join('')}
+          <li class="row"><div class="row-main"><div class="row-title"><span>Total</span></div>${P.dizimo ? `<div class="row-sub">Dízimo ou doação: ${String(P.dizimo).replace('.', ',')}%, tirado antes</div>` : ''}</div>
+          <div class="row-trail"><div class="amount ${Math.abs(total - 100) < 0.005 ? 'pos' : 'neg'}">${String(total).replace('.', ',')}%</div></div></li></ul></section>`;
+    }
+
+    let catSec;
+    if (!S.cats) {
+      catSec = `<section><div class="sec-head"><h2>Categorias</h2></div><div class="ledger">${vazio('tag', 'Categorias editáveis ainda não ativadas', 'No Supabase, rode o arquivo migracao_categorias.sql e recarregue o app.')}</div></section>`;
+    } else {
+      const areas = P ? P.areas : [];
+      const gasto = S.cats.filter((k) => k.tipo === 'gasto');
+      const grupo = (titulo, lista) => lista.length ? `<div class="grp"><h3 class="grp-title">${esc(titulo)}</h3><ul class="ledger">${lista.map((k) => linhaCategoria(k, '')).join('')}</ul></div>` : '';
+      const porArea = areas.map((a) => grupo(`${a.nome} · ${String(a.percentual).replace('.', ',')}%`, gasto.filter((k) => k.area === a.slug))).join('');
+      const semArea = grupo('Sem área (fora do plano)', gasto.filter((k) => !k.area || !areas.some((a) => a.slug === k.area)));
+      catSec = `<section><div class="sec-head"><h2>Categorias de gasto</h2><button class="btn small" data-act="nova-cat" data-tipo="gasto">${ico('plus')}Nova</button></div>
+        <p class="hint" style="margin:-4px 4px 12px">Cada categoria soma na área do plano onde está. Toque para renomear, trocar de área ou de ícone.</p>
+        <div class="stack">${porArea}${semArea}</div></section>
+        <section><div class="sec-head"><h2>Categorias de entrada</h2><button class="btn ghost small" data-act="nova-cat" data-tipo="entrada">${ico('plus')}Nova</button></div>
+        <ul class="ledger">${S.cats.filter((k) => k.tipo === 'entrada').map((k) => linhaCategoria(k, '')).join('')}</ul></section>`;
+    }
+
+    const modo = window.LepusTheme ? window.LepusTheme.modo() : 'auto';
+    const tema = (v, t) => `<button type="button" aria-pressed="${modo === v}" data-act="tema" data-tema="${v}">${t}</button>`;
+    $('ajustes-content').innerHTML = `<div class="ajustes">
+      <div>${voltar}<h2 class="page-title" style="margin:0 4px">Ajustes</h2></div>
+      ${planoSec}${catSec}
+      <section><div class="sec-head"><h2>Aparência</h2></div><div class="ledger set-pad">
+        <div class="seg" role="group" aria-label="Tema">${tema('auto', 'Automático')}${tema('light', 'Claro')}${tema('dark', 'Escuro')}</div>
+        <p class="hint">Automático segue a configuração do seu celular.</p></div></section>
+      <section><div class="sec-head"><h2>Conta</h2></div><div class="ledger">
+        <div class="account-line"><span class="avatar" aria-hidden="true">${esc((S.email || 'L')[0].toUpperCase())}</span>
+          <div style="min-width:0"><b>${esc(S.email || '—')}</b><small>Conectado</small></div></div>
+        <div class="set-pad" style="padding-top:0"><button class="btn ghost block" data-act="logout">${ico('log-out')}Sair da conta</button></div></div></section>
+    </div>`;
+  }
+
+  // ----- modal de categoria -----
+  function montarIcones(sel) {
+    $('cat-icones').innerHTML = ICONES_CATEGORIA.map((n) => `<button type="button" data-act="cat-icone" data-icone="${esc(n)}" aria-pressed="${n === sel}" aria-label="${esc(n)}">${ico(n)}</button>`).join('');
+  }
+  function opcoesAreaCat(sel) {
+    const ar = (S.plano && S.plano.areas) || [];
+    return `<option value="">Nenhuma (fica fora do plano)</option>` + ar.map((a) => `<option value="${esc(a.slug)}" ${a.slug === sel ? 'selected' : ''}>${esc(a.nome)} (${String(a.percentual).replace('.', ',')}%)</option>`).join('');
+  }
+  function setTipoCat(tipo) {
+    S.catTipo = tipo;
+    document.querySelectorAll('#modal-cat [data-act=cat-tipo]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.tipo === tipo));
+    $('cat-area-field').style.display = tipo === 'gasto' && S.plano ? '' : 'none';
+  }
+  function abrirCat(slug, tipoNovo) {
+    if (!S.cats) { toast('Rode o SQL migracao_categorias.sql no Supabase para editar categorias.', true); return; }
+    const k = slug ? S.cats.find((x) => x.slug === slug) : null;
+    $('cat-titulo').textContent = k ? 'Editar categoria' : 'Nova categoria';
+    $('cat-slug').value = k ? k.slug : '';
+    $('cat-nome').value = k ? k.nome : '';
+    $('cat-tipo-field').style.display = k ? 'none' : '';
+    $('cat-area').innerHTML = opcoesAreaCat(k ? k.area : '');
+    montarIcones(k ? k.icone : 'tag');
+    setTipoCat(k ? k.tipo : (tipoNovo === 'entrada' ? 'entrada' : 'gasto'));
+    $('cat-btn-del').style.display = k && k.slug !== 'outros' ? '' : 'none';
+    $('cat-del-box').hidden = true;
+    abrir('modal-cat');
+  }
+  const slugify = (t) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 34) || 'categoria';
+
+  async function salvarCat() {
+    const slug = $('cat-slug').value;
+    const nome = $('cat-nome').value.trim().replace(/\s+/g, ' ');
+    if (!nome) throw new Error('Dê um nome para a categoria.');
+    if (nome.length > 30) throw new Error('O nome pode ter até 30 caracteres.');
+    const tipo = slug ? S.cats.find((x) => x.slug === slug).tipo : S.catTipo;
+    if (S.cats.some((k) => k.slug !== slug && k.tipo === tipo && k.nome.toLowerCase() === nome.toLowerCase())) throw new Error('Já existe uma categoria com esse nome.');
+    const pressed = document.querySelector('#cat-icones [aria-pressed=true]');
+    const icone = pressed ? pressed.dataset.icone : 'tag';
+    const area = tipo === 'gasto' && S.plano && $('cat-area').value ? $('cat-area').value : null;
+    if (slug) {
+      must(await sb.from('categorias').update({ nome, icone, area }).eq('slug', slug));
+    } else {
+      let novo = slugify(nome), n = 2;
+      while (S.cats.some((k) => k.slug === novo)) novo = `${slugify(nome).slice(0, 36)}-${n++}`;
+      const ordem = Math.max(0, ...S.cats.filter((k) => k.tipo === tipo).map((k) => k.ordem || 0)) + 1;
+      must(await sb.from('categorias').insert({ slug: novo, nome, icone, tipo, area, ordem }));
+    }
+    fechar('modal-cat');
+    toast(slug ? 'Categoria salva' : 'Categoria criada');
+    await carregar();
+  }
+
+  async function pedirExclusaoCat() {
+    const slug = $('cat-slug').value;
+    const k = S.cats.find((x) => x.slug === slug);
+    if (!k || slug === 'outros') return;
+    const cnt = async (t) => (await sb.from(t).select('id', { count: 'exact', head: true }).eq('categoria', slug)).count || 0;
+    const usados = (await cnt('lancamentos')) + (await cnt('contas'));
+    const opts = S.cats.filter((x) => x.slug !== slug && x.tipo === k.tipo).concat(k.tipo === 'entrada' ? S.cats.filter((x) => x.slug === 'outros') : []);
+    $('cat-del-destino').innerHTML = opts.map((x) => `<option value="${esc(x.slug)}" ${x.slug === 'outros' ? 'selected' : ''}>${esc(x.nome)}</option>`).join('');
+    $('cat-del-destino-field').style.display = usados ? '' : 'none';
+    $('cat-del-texto').textContent = usados
+      ? `${usados} ${usados === 1 ? 'lançamento ou conta usa' : 'lançamentos e contas usam'} “${k.nome}”. Escolha para qual categoria movê-los antes de excluir.`
+      : `“${k.nome}” não tem nenhum lançamento. Pode excluir.`;
+    $('cat-del-box').hidden = false;
+    $('cat-del-box').scrollIntoView({ block: 'nearest' });
+  }
+  async function confirmarExclusaoCat() {
+    const slug = $('cat-slug').value;
+    const destino = $('cat-del-destino-field').style.display === 'none' ? null : $('cat-del-destino').value;
+    must(await sb.rpc('excluir_categoria', { p_slug: slug, p_destino: destino }));
+    fechar('modal-cat');
+    toast('Categoria excluída');
+    await carregar();
+  }
+
   const fmtPct = (n) => String(n).replace('.', ',');
   const lerPct = (v) => Number(String(v).trim().replace(',', '.') || 0);
 
@@ -787,9 +951,6 @@
     if (!P) { toast('Rode o SQL migracao_plano_do_mes.sql no Supabase para ativar o plano.', true); return; }
     $('plano-areas').innerHTML = P.areas.map((a) => `<div class="plano-linha"><label for="pa-${esc(a.slug)}">${esc(a.nome)}</label>
       <div class="pct"><input class="input" id="pa-${esc(a.slug)}" data-slug="${esc(a.slug)}" type="text" inputmode="decimal" autocomplete="off" value="${fmtPct(a.percentual)}" /><span aria-hidden="true">%</span></div></div>`).join('');
-    const opts = (sel) => P.areas.map((a) => `<option value="${esc(a.slug)}" ${a.slug === sel ? 'selected' : ''}>${esc(a.nome)}</option>`).join('');
-    $('plano-mapa').innerHTML = CATS_GASTO.map((k) => `<div class="plano-linha"><label for="pm-${esc(k)}">${esc(catNome(k))}</label>
-      <select class="select" id="pm-${esc(k)}" data-cat="${esc(k)}">${opts(P.mapa[k] || MAPA_PADRAO[k] || P.areas[0].slug)}</select></div>`).join('');
     $('plano-dizimo').value = P.dizimo ? fmtPct(P.dizimo) : '';
     $('plano-receita').value = P.receita != null ? valorParaInput(P.receita) : '';
     atualizarSomaPlano();
@@ -807,7 +968,6 @@
 
   function plano_padrao() {
     document.querySelectorAll('#plano-areas [data-slug]').forEach((i) => { if (i.dataset.slug in PLANO_PADRAO) i.value = String(PLANO_PADRAO[i.dataset.slug]); });
-    document.querySelectorAll('#plano-mapa [data-cat]').forEach((sel) => { const a = MAPA_PADRAO[sel.dataset.cat]; if (a && [...sel.options].some((o) => o.value === a)) sel.value = a; });
     $('plano-dizimo').value = '';
     atualizarSomaPlano();
     toast('Modelo padrão preenchido. Toque em Salvar plano para aplicar.');
@@ -827,9 +987,7 @@
     const recTxt = $('plano-receita').value.trim();
     let receita = null;
     if (recTxt) { receita = parseValor(recTxt); if (!Number.isFinite(receita) || receita <= 0) throw new Error('Receita estimada inválida. Use, por exemplo, 5.000,00 ou deixe vazio.'); }
-    const mapa = [...document.querySelectorAll('#plano-mapa [data-cat]')].map((sel) => ({ categoria: sel.dataset.cat, area: sel.value }));
     must(await sb.from('areas').upsert(areas));
-    must(await sb.from('categoria_area').upsert(mapa));
     must(await sb.from('planejamento').upsert({ id: true, dizimo_pct: Math.round(diz * 100) / 100, receita_centavos: receita }));
     fechar('modal-plano');
     toast(soma100 < 100 ? `Plano salvo. Faltam ${fmtPct(Math.round((100 - soma100) * 100) / 100)}% para distribuir.` : 'Plano salvo');
@@ -897,7 +1055,14 @@
     'login-google': () => loginGoogle(),
     'logout': async () => { fecharTodos(); await sb.auth.signOut(); },
     'recarregar': () => carregar(),
-    'config': () => abrirConfig(),
+    'config': () => showPage('ajustes'),
+    'nova-cat': (el) => abrirCat(null, el.dataset.tipo),
+    'edit-cat': (el) => abrirCat(el.dataset.slug),
+    'cat-tipo': (el) => setTipoCat(el.dataset.tipo),
+    'cat-icone': (el) => { document.querySelectorAll('#cat-icones button').forEach((b) => b.setAttribute('aria-pressed', b === el)); },
+    'salvar-cat': () => salvarCat(),
+    'del-cat': () => pedirExclusaoCat(),
+    'confirmar-del-cat': () => confirmarExclusaoCat(),
     'tema': (el) => { window.LepusTheme.definir(el.dataset.tema); marcarTema(); },
     'mes': (el) => {
       S.mes += Number(el.dataset.dir);

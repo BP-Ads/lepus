@@ -58,7 +58,7 @@
         <div class="month-label" id="monthLabel" aria-live="polite"></div>
         <button class="iconbtn" data-act="mes" data-dir="1" aria-label="Próximo mês"><i class="ic-slot" data-i="chevron-right"></i></button>
       </div>
-      <button class="iconbtn" data-act="config" aria-label="Conta e aparência"><i class="ic-slot" data-i="user-round"></i></button>
+      <button class="iconbtn" data-act="config" aria-label="Ajustes"><i class="ic-slot" data-i="user-round"></i></button>
     </div>
   </header>
 
@@ -103,6 +103,10 @@
     <section class="page" id="page-analise" aria-label="Análise">
       <div id="analise-content"></div>
     </section>
+
+    <section class="page" id="page-ajustes" aria-label="Ajustes">
+      <div id="ajustes-content"></div>
+    </section>
   </main>
 
   <nav class="bottom-nav" id="app-nav" aria-label="Navegação principal">
@@ -146,21 +150,7 @@
         </div>
         <div class="field">
           <label for="conta-categoria">Categoria</label>
-          <select class="select" id="conta-categoria">
-            <option value="moradia">Moradia</option>
-            <option value="alimentacao">Alimentação</option>
-            <option value="saude">Saúde</option>
-            <option value="transporte">Transporte</option>
-            <option value="educacao">Educação</option>
-            <option value="lazer">Lazer</option>
-            <option value="investimentos">Investimentos</option>
-            <option value="conforto">Conforto</option>
-            <option value="metas">Metas</option>
-            <option value="servicos">Serviços</option>
-            <option value="emprestimo">Empréstimo</option>
-            <option value="cartao">Cartão</option>
-            <option value="outros">Outros</option>
-          </select>
+          <select class="select" id="conta-categoria"></select>
         </div>
       </div>
 
@@ -262,22 +252,7 @@
         </div>
         <div class="field">
           <label for="lanc-categoria">Categoria</label>
-          <select class="select" id="lanc-categoria">
-            <option value="salario">Salário</option>
-            <option value="beneficio">Benefício</option>
-            <option value="extra">Extra</option>
-            <option value="alimentacao">Alimentação</option>
-            <option value="transporte">Transporte</option>
-            <option value="saude">Saúde</option>
-            <option value="lazer">Lazer</option>
-            <option value="investimentos">Investimentos</option>
-            <option value="conforto">Conforto</option>
-            <option value="metas">Metas</option>
-            <option value="educacao">Educação</option>
-            <option value="servicos">Serviços</option>
-            <option value="moradia">Moradia</option>
-            <option value="outros">Outros</option>
-          </select>
+          <select class="select" id="lanc-categoria"></select>
         </div>
       </div>
 
@@ -320,14 +295,52 @@
         <div class="money"><span aria-hidden="true">R$</span><input class="input" id="plano-receita" type="text" inputmode="decimal" autocomplete="off" placeholder="Usar as entradas do mês" /></div>
         <p class="hint">Deixe vazio para usar as entradas lançadas no mês (recebidas e a receber).</p>
       </div>
-      <details class="plano-mapa">
-        <summary>Qual categoria entra em qual área</summary>
-        <div id="plano-mapa"></div>
-      </details>
+      <p class="hint" style="margin:0 0 16px">Para mudar a área de uma categoria, ou criar categorias novas, volte em Ajustes e toque na categoria.</p>
       <div class="actions">
         <button class="btn block" data-act="salvar-plano">Salvar plano</button>
         <button class="btn ghost block" data-act="plano-padrao">Voltar ao modelo padrão</button>
         <button class="btn quiet block" data-act="fechar" data-modal="modal-plano">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CATEGORIA -->
+  <div class="modal-overlay" id="modal-cat">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cat-titulo">
+      <h2 class="modal-title" id="cat-titulo">Nova categoria</h2>
+      <input type="hidden" id="cat-slug" />
+      <div class="field" id="cat-tipo-field">
+        <span class="lbl" id="lbl-cat-tipo">Tipo</span>
+        <div class="seg" role="group" aria-labelledby="lbl-cat-tipo">
+          <button type="button" aria-pressed="true" data-act="cat-tipo" data-tipo="gasto">Gasto</button>
+          <button type="button" aria-pressed="false" data-act="cat-tipo" data-tipo="entrada">Entrada</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="cat-nome">Nome</label>
+        <input class="input" id="cat-nome" type="text" maxlength="30" autocomplete="off" placeholder="Ex.: Pets" />
+      </div>
+      <div class="field" id="cat-area-field">
+        <label for="cat-area">Entra em qual área do plano?</label>
+        <select class="select" id="cat-area"></select>
+        <p class="hint">É a área que soma os gastos desta categoria e compara com a meta em %.</p>
+      </div>
+      <div class="field">
+        <span class="lbl" id="lbl-cat-icone">Ícone</span>
+        <div class="icon-grid" id="cat-icones" role="group" aria-labelledby="lbl-cat-icone"></div>
+      </div>
+      <div id="cat-del-box" class="del-box" hidden>
+        <p id="cat-del-texto"></p>
+        <div class="field" id="cat-del-destino-field">
+          <label for="cat-del-destino">Mover para</label>
+          <select class="select" id="cat-del-destino"></select>
+        </div>
+        <button class="btn danger-solid block" data-act="confirmar-del-cat">Excluir categoria</button>
+      </div>
+      <div class="actions">
+        <button class="btn block" data-act="salvar-cat">Salvar categoria</button>
+        <button class="btn danger block" id="cat-btn-del" style="display:none" data-act="del-cat">Excluir categoria</button>
+        <button class="btn quiet block" data-act="fechar" data-modal="modal-cat">Cancelar</button>
       </div>
     </div>
   </div>
@@ -350,28 +363,6 @@
   </div>
 
   <!-- CONTA E APARÊNCIA -->
-  <div class="modal-overlay" id="modal-config">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="config-titulo">
-      <h2 class="modal-title" id="config-titulo">Conta e aparência</h2>
-      <div class="account-line">
-        <span class="avatar" id="cfg-avatar" aria-hidden="true">L</span>
-        <div style="min-width:0"><b id="cfg-email">—</b><small>Conectado</small></div>
-      </div>
-      <div class="field">
-        <span class="lbl" id="lbl-tema">Tema</span>
-        <div class="seg" role="group" aria-labelledby="lbl-tema">
-          <button type="button" aria-pressed="true" data-act="tema" data-tema="auto">Automático</button>
-          <button type="button" aria-pressed="false" data-act="tema" data-tema="light">Claro</button>
-          <button type="button" aria-pressed="false" data-act="tema" data-tema="dark">Escuro</button>
-        </div>
-        <p class="hint">Automático segue a configuração do seu celular.</p>
-      </div>
-      <div class="actions">
-        <button class="btn ghost block" data-act="logout"><i class="ic-slot" data-i="log-out"></i>Sair da conta</button>
-        <button class="btn quiet block" data-act="fechar" data-modal="modal-config">Fechar</button>
-      </div>
-    </div>
-  </div>
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
