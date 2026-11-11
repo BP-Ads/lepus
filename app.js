@@ -13,11 +13,18 @@
     moradia: ['house','Moradia'], alimentacao: ['utensils','Alimentação'], saude: ['heart-pulse','Saúde'],
     transporte: ['car','Transporte'], educacao: ['graduation-cap','Educação'], lazer: ['gamepad-2','Lazer'],
     servicos: ['zap','Serviços'], emprestimo: ['landmark','Empréstimo'], cartao: ['credit-card','Cartão'],
+    investimentos: ['trending-up','Investimentos'], conforto: ['sofa','Conforto'], metas: ['plane','Metas'],
     salario: ['banknote','Salário'], beneficio: ['gift','Benefício'], extra: ['briefcase','Extra'], outros: ['package','Outros']
   };
   const catIconName = (c) => (CATS[c] || CATS.outros)[0];
   const catNome = (c) => (CATS[c] ? CATS[c][1] : (c || 'Outros'));
   const PESSOAS = ['Bruno', 'Nanda', 'Família'];
+  // Plano do mês: categorias de gasto (as de entrada ficam de fora) e modelo padrão
+  const CATS_GASTO = Object.keys(CATS).filter((k) => !['salario', 'beneficio', 'extra'].includes(k));
+  const AREA_ICONE = { liberdade: 'trending-up', fixos: 'house', conforto: 'sofa', metas: 'plane', prazeres: 'gamepad-2', conhecimento: 'graduation-cap' };
+  const PLANO_PADRAO = { liberdade: 25, fixos: 30, conforto: 15, metas: 15, prazeres: 10, conhecimento: 5 };
+  const MAPA_PADRAO = { investimentos: 'liberdade', moradia: 'fixos', alimentacao: 'fixos', saude: 'fixos', transporte: 'fixos', servicos: 'fixos',
+    emprestimo: 'fixos', conforto: 'conforto', cartao: 'conforto', outros: 'conforto', metas: 'metas', lazer: 'prazeres', educacao: 'conhecimento' };
 
   // ===== Ícones (Lucide, embutidos em icons.js) =====
   const ICONS = window.LEPUS_ICONS || {};
@@ -109,7 +116,7 @@
   const hoje0 = new Date();
   const S = {
     userId: null, email: '', ano: hoje0.getFullYear(), mes: hoje0.getMonth(), page: 'home',
-    contas: [], lancs: [], atrasadas: [], proximas: [], resumo: {}, orc: {},
+    contas: [], lancs: [], atrasadas: [], proximas: [], resumo: {}, orc: {}, plano: null,
     filtroContas: 'todas', filtroLanc: 'todos', filtroQuem: 'todos',
     tipoConta: 'fixa', tipoLanc: 'entrada', excluindo: null, orcCat: null, token: 0
   };
@@ -175,7 +182,7 @@
   function sair() {
     S.userId = null;
     if (canal && sb) { sb.removeChannel(canal); canal = null; }
-    S.contas = []; S.lancs = []; S.atrasadas = []; S.proximas = []; S.resumo = {}; S.orc = {};
+    S.contas = []; S.lancs = []; S.atrasadas = []; S.proximas = []; S.resumo = {}; S.orc = {}; S.plano = null;
     fecharTodos();
     mostrarLogin('');
   }
@@ -197,18 +204,32 @@
     const ini = ymd(S.ano, S.mes, 1);
     const fim = ymd(S.ano, S.mes, diasNoMes(S.ano, S.mes));
     try {
-      const [c, l, atr, prox, res, orc] = await Promise.all([
+      const [c, l, atr, prox, res, orc, pa, pm, pp] = await Promise.all([
         sb.from('contas').select('*').gte('vencimento', ini).lte('vencimento', fim).order('vencimento'),
         sb.from('lancamentos').select('*').gte('data', ini).lte('data', fim).order('data', { ascending: false }),
         sb.from('contas').select('*').eq('pago', false).lt('vencimento', hoje).order('vencimento'),
         sb.from('contas').select('*').eq('pago', false).gte('vencimento', hoje).lte('vencimento', maisDias(7)).order('vencimento'),
         sb.rpc('resumo', { p_hoje: hoje, p_fim_mes: fim }),
-        sb.from('orcamentos').select('*')
+        sb.from('orcamentos').select('*'),
+        sb.from('areas').select('*').order('ordem'),
+        sb.from('categoria_area').select('*'),
+        sb.from('planejamento').select('*').limit(1)
       ]);
       if (tk !== S.token) return; // chegou resposta de uma navegação mais antiga
       S.contas = must(c); S.lancs = must(l); S.atrasadas = must(atr); S.proximas = must(prox);
       S.resumo = must(res) || {};
       S.orc = Object.fromEntries(must(orc).map((o) => [o.categoria, Number(o.limite_centavos)]));
+      // O plano é opcional: se o SQL novo ainda não foi rodado, o resto do app segue normal.
+      if (pa.error || pm.error || pp.error || !(pa.data || []).length) S.plano = null;
+      else {
+        const cfg = (pp.data || [])[0] || {};
+        S.plano = {
+          areas: pa.data.map((a) => ({ slug: a.slug, nome: a.nome, percentual: Number(a.percentual), ordem: a.ordem, minimo: !!a.minimo })),
+          mapa: Object.fromEntries((pm.data || []).map((m) => [m.categoria, m.area])),
+          dizimo: Number(cfg.dizimo_pct || 0),
+          receita: cfg.receita_centavos != null ? Number(cfg.receita_centavos) : null
+        };
+      }
       renderizarTudo();
     } catch (e) {
       if (tk !== S.token) return;
@@ -393,6 +414,68 @@
       }).join('')}</ul></div>`).join('');
   }
 
+  function calcPlano() {
+    const P = S.plano;
+    if (!P) return null;
+    const entradas = soma(S.lancs.filter((l) => l.tipo === 'entrada'));
+    const base = P.receita != null ? P.receita : entradas;
+    const dizimo = Math.round((base * P.dizimo) / 100);
+    const dist = base - dizimo;
+    const areaDe = (cat) => P.mapa[cat] || null;
+    const saidas = S.lancs.filter((l) => l.tipo === 'saida');
+    const abertas = S.contas.filter((c) => !c.pago);
+    const linhas = P.areas.map((a) => {
+      const meta = Math.round((dist * a.percentual) / 100);
+      const gasto = soma(saidas.filter((l) => areaDe(l.categoria) === a.slug));
+      const aPagar = soma(abertas.filter((c) => areaDe(c.categoria) === a.slug));
+      const comp = gasto + aPagar;
+      let tom, texto;
+      if (a.minimo) {
+        if (gasto === 0) { tom = 'falta'; texto = `Falta: nada lançado em ${a.nome.toLowerCase()} neste mês.`; }
+        else if (gasto < meta) { tom = 'parcial'; texto = `Faltam ${fmt(meta - gasto)} para a meta.`; }
+        else { tom = 'ok'; texto = gasto > meta ? `Meta batida, ${fmt(gasto - meta)} a mais.` : 'Meta batida.'; }
+      } else if (comp === 0) { tom = 'neutro'; texto = 'Nada lançado ainda.'; }
+      else if (comp > meta) { tom = 'over'; texto = `Passou ${fmt(comp - meta)} da meta.`; }
+      else if (comp >= meta * 0.9) { tom = 'warn'; texto = `Perto do limite: restam ${fmt(meta - comp)}.`; }
+      else { tom = 'ok'; texto = `Dentro da meta: restam ${fmt(meta - comp)}.`; }
+      return { ...a, meta, gasto, aPagar, tom, texto };
+    });
+    const mapeadas = new Set(Object.keys(P.mapa));
+    const semArea = soma(saidas.filter((l) => !mapeadas.has(l.categoria))) + soma(abertas.filter((c) => !mapeadas.has(c.categoria)));
+    return { base, dizimo, dist, linhas, semArea, somaPct: P.areas.reduce((t, a) => t + a.percentual, 0), fonte: P.receita != null ? 'valor que você definiu' : 'entradas do mês' };
+  }
+
+  function planoHtml() {
+    const titulo = `<div class="sec-head"><h2>Plano de ${esc(MESES[S.mes].toLowerCase())}</h2>${S.plano ? '<button class="btn ghost small" data-act="plano">Ajustar %</button>' : ''}</div>`;
+    const R = calcPlano();
+    if (!R) return `<section>${titulo}<div class="ledger">${vazio('target', 'Plano do mês ainda não ativado', 'No Supabase, rode o arquivo migracao_plano_do_mes.sql (SQL Editor) e recarregue o app.')}</div></section>`;
+    if (R.base <= 0) {
+      return `<section>${titulo}<div class="ledger">${vazio('target', 'Falta a receita do mês',
+        'Lance as entradas do mês ou defina uma receita mensal estimada para ver quanto vai para cada área.',
+        '<button class="btn" data-act="plano">Definir plano</button>')}</div></section>`;
+    }
+    const linhas = R.linhas.map((a) => {
+      const pa = a.meta > 0 ? Math.min(100, (a.gasto / a.meta) * 100) : 0;
+      const pb = a.meta > 0 && !a.minimo ? Math.min(100 - pa, (a.aPagar / a.meta) * 100) : 0;
+      const cls = a.tom === 'over' ? 'over' : a.minimo ? 'pos' : '';
+      const pct = Number.isInteger(a.percentual) ? a.percentual : String(a.percentual).replace('.', ',');
+      return `<div class="cat-row plan-row">
+        <div class="cat-top">${chip(AREA_ICONE[a.slug] || 'target', '', true)}<span class="cat-name">${esc(a.nome)}<small class="plan-pct">${pct}% da receita</small></span>
+          <span class="cat-val">${fmt(a.gasto)}<small>de ${fmt(a.meta)}</small></span></div>
+        <div class="meter plan ${cls}" role="progressbar" aria-label="${esc(a.nome)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pa)}"><i class="a" style="width:${pa.toFixed(1)}%"></i><i class="b" style="width:${pb.toFixed(1)}%"></i></div>
+        <div class="plan-status ${a.tom}">${esc(a.texto)}${!a.minimo && a.aPagar ? ` Inclui ${esc(fmt(a.aPagar))} ainda a pagar.` : ''}</div>
+      </div>`;
+    }).join('');
+    const notas = [];
+    notas.push(`Base de ${fmt(R.base)} (${R.fonte})${R.dizimo ? `, já sem ${fmt(R.dizimo)} de dízimo ou doação` : ''}.`);
+    if (Math.abs(R.somaPct - 100) > 0.001) notas.push(`Os percentuais somam ${String(R.somaPct).replace('.', ',')}%, o ideal é 100%.`);
+    if (R.semArea) notas.push(`${fmt(R.semArea)} em categorias sem área. Ligue-as em Ajustar %.`);
+    return `<section>${titulo}
+      <p class="hint" style="margin:-4px 4px 12px">${esc(notas.join(' '))}</p>
+      <div class="ledger">${linhas}</div>
+      <div class="plan-legend"><span><i></i>Já gasto</span><span><i class="b"></i>Ainda a pagar</span></div></section>`;
+  }
+
   async function renderAnalise() {
     const entM = soma(S.lancs.filter((l) => l.tipo === 'entrada' && l.recebido));
     const saiM = soma(S.lancs.filter((l) => l.tipo === 'saida'));
@@ -431,6 +514,7 @@
     }).join('') : vazio('chart-pie', 'Sem gastos no mês', '');
 
     $('analise-content').innerHTML = `<div class="stack">
+      ${planoHtml()}
       <section><div class="sec-head"><h2>Resumo de ${esc(MESES[S.mes].toLowerCase())}</h2></div>
         <div class="grid2x2">
           <div><div class="s-label">Entradas</div><div class="s-val tone-pos">${fmt(entM)}</div></div>
@@ -695,6 +779,63 @@
     await carregar();
   }
 
+  const fmtPct = (n) => String(n).replace('.', ',');
+  const lerPct = (v) => Number(String(v).trim().replace(',', '.') || 0);
+
+  function abrirPlano() {
+    const P = S.plano;
+    if (!P) { toast('Rode o SQL migracao_plano_do_mes.sql no Supabase para ativar o plano.', true); return; }
+    $('plano-areas').innerHTML = P.areas.map((a) => `<div class="plano-linha"><label for="pa-${esc(a.slug)}">${esc(a.nome)}</label>
+      <div class="pct"><input class="input" id="pa-${esc(a.slug)}" data-slug="${esc(a.slug)}" type="text" inputmode="decimal" autocomplete="off" value="${fmtPct(a.percentual)}" /><span aria-hidden="true">%</span></div></div>`).join('');
+    const opts = (sel) => P.areas.map((a) => `<option value="${esc(a.slug)}" ${a.slug === sel ? 'selected' : ''}>${esc(a.nome)}</option>`).join('');
+    $('plano-mapa').innerHTML = CATS_GASTO.map((k) => `<div class="plano-linha"><label for="pm-${esc(k)}">${esc(catNome(k))}</label>
+      <select class="select" id="pm-${esc(k)}" data-cat="${esc(k)}">${opts(P.mapa[k] || MAPA_PADRAO[k] || P.areas[0].slug)}</select></div>`).join('');
+    $('plano-dizimo').value = P.dizimo ? fmtPct(P.dizimo) : '';
+    $('plano-receita').value = P.receita != null ? valorParaInput(P.receita) : '';
+    atualizarSomaPlano();
+    abrir('modal-plano');
+  }
+
+  function atualizarSomaPlano() {
+    const t = [...document.querySelectorAll('#plano-areas [data-slug]')].reduce((s, i) => s + (Number.isFinite(lerPct(i.value)) ? lerPct(i.value) : 0), 0);
+    const r = Math.round(t * 100) / 100;
+    const el = $('plano-total');
+    if (Math.abs(r - 100) < 0.005) { el.className = 'plano-total ok'; el.textContent = 'Soma: 100%. Tudo distribuído.'; }
+    else if (r < 100) { el.className = 'plano-total warn'; el.textContent = `Soma: ${fmtPct(r)}%. Faltam ${fmtPct(Math.round((100 - r) * 100) / 100)}% para distribuir.`; }
+    else { el.className = 'plano-total over'; el.textContent = `Soma: ${fmtPct(r)}%. Passou ${fmtPct(Math.round((r - 100) * 100) / 100)}% de 100%.`; }
+  }
+
+  function plano_padrao() {
+    document.querySelectorAll('#plano-areas [data-slug]').forEach((i) => { if (i.dataset.slug in PLANO_PADRAO) i.value = String(PLANO_PADRAO[i.dataset.slug]); });
+    document.querySelectorAll('#plano-mapa [data-cat]').forEach((sel) => { const a = MAPA_PADRAO[sel.dataset.cat]; if (a && [...sel.options].some((o) => o.value === a)) sel.value = a; });
+    $('plano-dizimo').value = '';
+    atualizarSomaPlano();
+    toast('Modelo padrão preenchido. Toque em Salvar plano para aplicar.');
+  }
+
+  async function salvarPlano() {
+    const P = S.plano;
+    const areas = P.areas.map((a) => {
+      const v = lerPct($(`pa-${a.slug}`).value);
+      if (!Number.isFinite(v) || v < 0 || v > 100) throw new Error(`Percentual inválido em ${a.nome}. Use um número de 0 a 100.`);
+      return { slug: a.slug, nome: a.nome, percentual: Math.round(v * 100) / 100, ordem: a.ordem, minimo: a.minimo };
+    });
+    const soma100 = Math.round(areas.reduce((t, a) => t + a.percentual, 0) * 100) / 100;
+    if (soma100 > 100) throw new Error(`Os percentuais somam ${fmtPct(soma100)}%. Reduza para no máximo 100%.`);
+    const diz = lerPct($('plano-dizimo').value);
+    if (!Number.isFinite(diz) || diz < 0 || diz > 100) throw new Error('Dízimo ou doação: use um número de 0 a 100.');
+    const recTxt = $('plano-receita').value.trim();
+    let receita = null;
+    if (recTxt) { receita = parseValor(recTxt); if (!Number.isFinite(receita) || receita <= 0) throw new Error('Receita estimada inválida. Use, por exemplo, 5.000,00 ou deixe vazio.'); }
+    const mapa = [...document.querySelectorAll('#plano-mapa [data-cat]')].map((sel) => ({ categoria: sel.dataset.cat, area: sel.value }));
+    must(await sb.from('areas').upsert(areas));
+    must(await sb.from('categoria_area').upsert(mapa));
+    must(await sb.from('planejamento').upsert({ id: true, dizimo_pct: Math.round(diz * 100) / 100, receita_centavos: receita }));
+    fechar('modal-plano');
+    toast(soma100 < 100 ? `Plano salvo. Faltam ${fmtPct(Math.round((100 - soma100) * 100) / 100)}% para distribuir.` : 'Plano salvo');
+    await carregar();
+  }
+
   async function salvarOrc() {
     const v = $('orc-valor').value.trim();
     if (!v) return removerOrc();
@@ -795,11 +936,15 @@
     'excluir-uma': () => confirmarExclusao(false),
     'excluir-proximas': () => confirmarExclusao(true),
     'orc': (el) => abrirOrc(el.dataset.cat),
+    'plano': () => abrirPlano(),
+    'salvar-plano': () => salvarPlano(),
+    'plano-padrao': () => plano_padrao(),
     'salvar-orc': () => salvarOrc(),
     'remover-orc': () => removerOrc(),
     'csv': () => exportarCsv()
   };
 
+  document.addEventListener('input', (e) => { if (e.target.dataset && e.target.dataset.slug && e.target.closest('#plano-areas')) atualizarSomaPlano(); });
   document.addEventListener('change', (e) => {
     if (e.target.id === 'lanc-recebido') S.recebidoTocado = true;
     if (e.target.id === 'lanc-data' && !S.recebidoTocado) $('lanc-recebido').checked = !!e.target.value && e.target.value <= hojeStr();

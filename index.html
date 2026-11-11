@@ -153,6 +153,9 @@
             <option value="transporte">Transporte</option>
             <option value="educacao">Educação</option>
             <option value="lazer">Lazer</option>
+            <option value="investimentos">Investimentos</option>
+            <option value="conforto">Conforto</option>
+            <option value="metas">Metas</option>
             <option value="servicos">Serviços</option>
             <option value="emprestimo">Empréstimo</option>
             <option value="cartao">Cartão</option>
@@ -267,6 +270,9 @@
             <option value="transporte">Transporte</option>
             <option value="saude">Saúde</option>
             <option value="lazer">Lazer</option>
+            <option value="investimentos">Investimentos</option>
+            <option value="conforto">Conforto</option>
+            <option value="metas">Metas</option>
             <option value="educacao">Educação</option>
             <option value="servicos">Serviços</option>
             <option value="moradia">Moradia</option>
@@ -293,6 +299,35 @@
         <button class="btn danger-solid block" id="ex-uma" data-act="excluir-uma">Excluir</button>
         <button class="btn ghost block" id="ex-prox" data-act="excluir-proximas">Excluir esta e as próximas</button>
         <button class="btn quiet block" data-act="fechar" data-modal="modal-excluir">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PLANO DO MÊS -->
+  <div class="modal-overlay" id="modal-plano">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="plano-titulo">
+      <h2 class="modal-title" id="plano-titulo">Plano do mês</h2>
+      <p class="modal-sub">Quanto da receita vai para cada área. Mude os percentuais como fizer sentido para a sua casa.</p>
+      <div id="plano-areas"></div>
+      <p class="plano-total" id="plano-total" aria-live="polite"></p>
+      <div class="field">
+        <label for="plano-dizimo">Dízimo ou doação (%)</label>
+        <input class="input" id="plano-dizimo" type="text" inputmode="decimal" autocomplete="off" placeholder="0" />
+        <p class="hint">Sai da receita antes de dividir nas áreas. Deixe 0 se não se aplica.</p>
+      </div>
+      <div class="field">
+        <label for="plano-receita">Receita mensal estimada</label>
+        <div class="money"><span aria-hidden="true">R$</span><input class="input" id="plano-receita" type="text" inputmode="decimal" autocomplete="off" placeholder="Usar as entradas do mês" /></div>
+        <p class="hint">Deixe vazio para usar as entradas lançadas no mês (recebidas e a receber).</p>
+      </div>
+      <details class="plano-mapa">
+        <summary>Qual categoria entra em qual área</summary>
+        <div id="plano-mapa"></div>
+      </details>
+      <div class="actions">
+        <button class="btn block" data-act="salvar-plano">Salvar plano</button>
+        <button class="btn ghost block" data-act="plano-padrao">Voltar ao modelo padrão</button>
+        <button class="btn quiet block" data-act="fechar" data-modal="modal-plano">Cancelar</button>
       </div>
     </div>
   </div>

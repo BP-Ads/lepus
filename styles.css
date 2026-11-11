@@ -371,3 +371,36 @@ h1, h2, h3 { font-family: var(--f-display); font-weight: 600; letter-spacing: -.
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ===== Plano do mês ===== */
+.plan-row { cursor: default; }
+.plan-pct { display: block; font: 400 12px/1.2 var(--f-body); color: var(--ink-2); margin-top: 2px; }
+.meter.plan { display: flex; }
+.meter.plan > i { height: 100%; border-radius: 0; flex: none; }
+.meter.plan > i.b { background: var(--brand); opacity: .35; }
+.meter.plan.pos > i.a { background: var(--pos); }
+.meter.plan.over > i.a { background: var(--neg); }
+.meter.plan.over > i.b { background: var(--neg); }
+.plan-status { font-size: 13px; margin-top: 8px; font-weight: 500; color: var(--ink-2); }
+.plan-status.ok { color: var(--pos); }
+.plan-status.parcial, .plan-status.warn { color: var(--warn); }
+.plan-status.falta, .plan-status.over { color: var(--neg); }
+.plan-legend { display: flex; gap: 16px; font-size: 12px; color: var(--ink-2); margin: 10px 4px 0; flex-wrap: wrap; }
+.plan-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--brand); }
+.plan-legend i.b { opacity: .35; }
+.plano-linha { display: grid; grid-template-columns: 1fr 104px; gap: 12px; align-items: center; margin-bottom: 10px; }
+.plano-linha > label { font: 500 14.5px/1.3 var(--f-body); color: var(--ink); }
+.plano-linha .pct { position: relative; }
+.plano-linha .pct .input { padding-right: 32px; text-align: right; }
+.plano-linha .pct > span { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-2); pointer-events: none; }
+.plano-total { font-weight: 600; font-size: 14px; margin: 4px 0 18px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); }
+.plano-total.ok { color: var(--pos); background: var(--pos-soft); }
+.plano-total.warn { color: var(--warn); background: var(--warn-soft); }
+.plano-total.over { color: var(--neg); background: var(--neg-soft); }
+.plano-mapa { margin-bottom: 18px; }
+.plano-mapa > summary { cursor: pointer; font: 600 14px/1.2 var(--f-body); padding: 12px 0; min-height: 44px; display: flex; align-items: center; }
+.plano-mapa .select { width: 100%; }
+@media (max-width: 420px) { .plano-linha { grid-template-columns: 1fr 92px; } }
+
+#plano-mapa .plano-linha { grid-template-columns: minmax(0, .8fr) minmax(0, 1.4fr); }
+#plano-mapa .select { text-overflow: ellipsis; }
